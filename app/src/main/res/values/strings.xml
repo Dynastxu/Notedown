@@ -6,4 +6,13 @@
     <string name="icon_desc_menu">Menu</string>
     <string name="label_add_note">Add Note</string>
     <string name="label_search">Search</string>
+    <string name="error_fatal">The application encountered a fatal error.</string>
+    <string name="error_stack">Error Stack</string>
+    <string name="error_copy">Copy</string>
+    <string name="error_confirm">Confirm</string>
+    <string name="error_on_copy">Copied to clipboard</string>
+    <string name="error_unknown_stack">Unknown Error</string>
+    <string name="error_unknown_thread">Unknown Thread</string>
+    <string name="error_clipboard_label">Error Stack</string>
+    <string name="error_thread_name">Thread:</string>
 </resources>

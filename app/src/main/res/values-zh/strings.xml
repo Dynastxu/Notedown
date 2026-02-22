@@ -6,4 +6,13 @@
     <string name="icon_desc_menu">菜单</string>
     <string name="label_add_note">添加笔记</string>
     <string name="label_search">搜索</string>
+    <string name="error_fatal">应用遇到致命错误</string>
+    <string name="error_stack">错误堆栈</string>
+    <string name="error_copy">复制</string>
+    <string name="error_confirm">确认</string>
+    <string name="error_on_copy">已复制到剪切板</string>
+    <string name="error_unknown_stack">未知错误</string>
+    <string name="error_unknown_thread">未知线程</string>
+    <string name="error_clipboard_label">错误堆栈</string>
+    <string name="error_thread_name">"线程： "</string>
 </resources>
