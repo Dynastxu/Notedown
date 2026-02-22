@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="icon_desc_back">返回</string>
+    <string name="title_home">主页</string>
+    <string name="title_settings">设置</string>
+</resources>
