@@ -15,4 +15,7 @@
     <string name="error_unknown_thread">未知线程</string>
     <string name="error_clipboard_label">错误堆栈</string>
     <string name="error_thread_name">"线程： "</string>
+    <string name="title_edit">编辑</string>
+    <string name="icon_desc_done">完成</string>
+    <string name="icon_desc_edit">编辑</string>
 </resources>

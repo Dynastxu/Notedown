@@ -15,4 +15,7 @@
     <string name="error_unknown_thread">Unknown Thread</string>
     <string name="error_clipboard_label">Error Stack</string>
     <string name="error_thread_name">Thread:</string>
+    <string name="title_edit">Edit</string>
+    <string name="icon_desc_done">Done</string>
+    <string name="icon_desc_edit">Edit</string>
 </resources>

@@ -13,11 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +34,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -46,6 +47,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.dynastxu.notedown.models.view.MainViewModel
+import com.dynastxu.notedown.pages.EditScreen
 import com.dynastxu.notedown.pages.HomeScreen
 import com.dynastxu.notedown.pages.SettingsScreen
 import com.dynastxu.notedown.ui.theme.NotedownTheme
@@ -54,6 +56,7 @@ import kotlinx.coroutines.launch
 
 const val ROUTE_HOME = "home"
 const val ROUTE_SETTINGS = "settings"
+const val ROUTE_EDIT = "edit"
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
@@ -82,7 +85,14 @@ class MainActivity : ComponentActivity() {
                     // 外层 Scaffold，包含动态顶部栏
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
-                        topBar = { AppTopBar(navController, drawerState, scope) }  // 顶部栏随页面变化
+                        topBar = {
+                            AppTopBar(
+                                navController,
+                                drawerState,
+                                scope,
+                                viewModel
+                            )
+                        }  // 顶部栏随页面变化
                     ) { innerPadding ->
                         // 导航图放在 Scaffold 内容区，使用 innerPadding 避免被状态栏遮挡
                         NavHost(
@@ -92,6 +102,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             composable(ROUTE_HOME) { HomeScreen(navController, viewModel) }
                             composable(ROUTE_SETTINGS) { SettingsScreen(navController) }
+                            composable(ROUTE_EDIT) { EditScreen(navController, viewModel) }
                         }
                     }
                 }
@@ -108,16 +119,19 @@ class MainActivity : ComponentActivity() {
 fun AppTopBar(
     navController: NavHostController,
     drawerState: DrawerState,
-    scope: CoroutineScope
+    scope: CoroutineScope,
+    viewModel: MainViewModel
 ) {
     // 观察当前栈顶条目，以获取当前路由
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
+    val isEditing by viewModel.isEditing.collectAsState()
 
     // 根据路由确定标题
     val title = when (currentRoute) {
         ROUTE_HOME -> stringResource(R.string.title_home)
         ROUTE_SETTINGS -> stringResource(R.string.title_settings)
+        ROUTE_EDIT -> stringResource(R.string.title_edit)
         else -> stringResource(R.string.app_name)
     }
 
@@ -141,6 +155,25 @@ fun AppTopBar(
                             Icons.AutoMirrored.Default.ArrowBack,
                             stringResource(R.string.icon_desc_back)
                         )
+                    }
+                }
+            }
+        },
+        actions = {
+            when (currentRoute) {
+                ROUTE_EDIT -> {
+                    IconButton(onClick = { viewModel.editChange() }) {
+                        if (isEditing) {
+                            Icon(
+                                Icons.Default.Done,
+                                stringResource(R.string.icon_desc_done)
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Edit,
+                                stringResource(R.string.icon_desc_edit)
+                            )
+                        }
                     }
                 }
             }
@@ -176,7 +209,10 @@ fun DrawerContent(
         NavigationDrawerItem(
             label = { Text(stringResource(R.string.label_add_note)) },
             selected = false,
-            onClick = { TODO() },
+            onClick = {
+                navController.navigate(ROUTE_EDIT)
+                scope.launch { drawerState.close() }
+            },
             icon = { Icon(Icons.Default.Add, stringResource(R.string.label_add_note)) }
         )
         NavigationDrawerItem(

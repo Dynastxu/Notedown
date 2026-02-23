@@ -2,6 +2,8 @@ package com.dynastxu.notedown.models.view
 
 import android.app.Application
 import android.os.Environment
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.runtime.Composable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -16,9 +18,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _folderReady = MutableStateFlow<File?>(null)
     val folderReady: StateFlow<File?> = _folderReady
 
+    private val _isEditing = MutableStateFlow(false)
+    val isEditing: StateFlow<Boolean> = _isEditing
+
     init {
         // 在 ViewModel 创建时自动开始创建文件夹
         createNotedownFolder()
+    }
+
+    fun editChange() {
+        _isEditing.value = !_isEditing.value
     }
 
     private fun createNotedownFolder() {
