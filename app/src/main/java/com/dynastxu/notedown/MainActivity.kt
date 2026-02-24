@@ -77,7 +77,7 @@ class MainActivity : ComponentActivity() {
                     drawerState = drawerState,
                     drawerContent = {
                         ModalDrawerSheet {
-                            DrawerContent(navController, drawerState, scope)
+                            DrawerContent(navController, drawerState, scope, viewModel)
                         }
                     },
                     gesturesEnabled = true
@@ -162,7 +162,7 @@ fun AppTopBar(
         actions = {
             when (currentRoute) {
                 ROUTE_EDIT -> {
-                    IconButton(onClick = { viewModel.editChange() }) {
+                    IconButton(onClick = { viewModel.editBtnPressed() }) {
                         if (isEditing) {
                             Icon(
                                 Icons.Default.Done,
@@ -189,7 +189,8 @@ fun AppTopBar(
 fun DrawerContent(
     navController: NavHostController,
     drawerState: DrawerState,
-    scope: CoroutineScope
+    scope: CoroutineScope,
+    viewModel: MainViewModel
 ) {
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
@@ -210,6 +211,7 @@ fun DrawerContent(
             label = { Text(stringResource(R.string.label_add_note)) },
             selected = false,
             onClick = {
+                viewModel.selectNote()
                 navController.navigate(ROUTE_EDIT)
                 scope.launch { drawerState.close() }
             },

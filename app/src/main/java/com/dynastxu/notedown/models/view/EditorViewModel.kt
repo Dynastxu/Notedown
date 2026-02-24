@@ -3,6 +3,7 @@ package com.dynastxu.notedown.models.view
 import androidx.lifecycle.ViewModel
 import com.dynastxu.notedown.models.data.Block
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlin.collections.toMutableList
@@ -13,6 +14,13 @@ class EditorViewModel : ViewModel() {
 
     private val _focusedIndex = MutableStateFlow(0)
     val focusedIndex = _focusedIndex.asStateFlow()
+
+    private val _isEditing = MutableStateFlow(false)
+    val isEditing: StateFlow<Boolean> = _isEditing
+
+    fun setIsEditing(isEditing: Boolean) {
+        _isEditing.value = isEditing
+    }
 
     fun addBlockAfter(index: Int, block: Block) {
         _blocks.update { list ->

@@ -2,8 +2,6 @@ package com.dynastxu.notedown.models.view
 
 import android.app.Application
 import android.os.Environment
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.runtime.Composable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -18,16 +16,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _folderReady = MutableStateFlow<File?>(null)
     val folderReady: StateFlow<File?> = _folderReady
 
+    private val _selectedNote = MutableStateFlow("")
+    val selectedNote: StateFlow<String> = _selectedNote
+
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing
+
+    /**
+     * 当顶部栏编辑按钮被按下时执行
+     */
+    var onEditBtnPressed = {}
 
     init {
         // 在 ViewModel 创建时自动开始创建文件夹
         createNotedownFolder()
     }
 
-    fun editChange() {
+    fun editBtnPressed() {
         _isEditing.value = !_isEditing.value
+        onEditBtnPressed()
+    }
+
+    fun selectNote(note: String = "") {
+        _selectedNote.value = note
     }
 
     private fun createNotedownFolder() {

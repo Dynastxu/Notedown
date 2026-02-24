@@ -13,11 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,12 +29,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.dynastxu.notedown.R
 import com.dynastxu.notedown.models.data.Block
 import com.dynastxu.notedown.models.view.EditorViewModel
 import com.dynastxu.notedown.models.view.MainViewModel
@@ -48,16 +41,21 @@ import com.dynastxu.notedown.models.view.MainViewModel
 fun EditScreen(navController: NavController, mainViewModel: MainViewModel, viewModel: EditorViewModel = viewModel()){
     val blocks by viewModel.blocks.collectAsState()
     val focusedIndex by viewModel.focusedIndex.collectAsState()
-    val isEditing by mainViewModel.isEditing.collectAsState()
+    val isEditing by viewModel.isEditing.collectAsState()
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val selectedNote by mainViewModel.selectedNote.collectAsState()
 
+    mainViewModel.onEditBtnPressed = {
+        viewModel.setIsEditing(mainViewModel.isEditing.value)
+    }
 
     // 自动滚动到焦点块
     LaunchedEffect(focusedIndex) {
         listState.animateScrollToItem(focusedIndex)
     }
+
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
@@ -66,7 +64,22 @@ fun EditScreen(navController: NavController, mainViewModel: MainViewModel, viewM
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             itemsIndexed(blocks) { index, block ->
-
+                BlockItem(
+                    block = block,
+                    isFocused = index == focusedIndex,
+                    onFocus = { viewModel.setFocusedIndex(index) },
+                    onDelete = { viewModel.removeBlockAt(index) },
+                    onUpdateText = { newText ->
+                        when (block) {
+                            is Block.HeadingBlock -> {}
+                            is Block.TextBlock -> {
+                                viewModel.updateTextBlock(index) { text = newText }
+                            }
+                            is Block.ImageBlock -> {}
+                        }
+                    },
+                    isReadOnly = !isEditing
+                )
             }
         }
     }
@@ -79,7 +92,8 @@ fun BlockItem(
     onFocus: () -> Unit,
     onDelete: () -> Unit,
     onUpdateText: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isReadOnly: Boolean = false
 ){
     val borderColor = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent
     val focusRequester = remember { FocusRequester() }
@@ -99,7 +113,7 @@ fun BlockItem(
     ) {
         when (block) {
             is Block.HeadingBlock -> HeadingBlockEditor(block, onUpdateText)
-            is Block.TextBlock -> TextBlockEditor(block, onUpdateText)
+            is Block.TextBlock -> TextBlockEditor(block, onUpdateText, isReadOnly)
             is Block.ImageBlock -> ImageBlockView(block, onDelete)
         }
     }
@@ -111,7 +125,7 @@ fun HeadingBlockEditor(block: Block.HeadingBlock, onUpdateText: (String) -> Unit
 }
 
 @Composable
-fun TextBlockEditor(block: Block.TextBlock, onUpdateText: (String) -> Unit) {
+fun TextBlockEditor(block: Block.TextBlock, onUpdateText: (String) -> Unit, isReadOnly: Boolean = false) {
     var textFieldValue by remember(block.text) {
         mutableStateOf(TextFieldValue(block.text))
     }
@@ -126,7 +140,8 @@ fun TextBlockEditor(block: Block.TextBlock, onUpdateText: (String) -> Unit) {
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(8.dp),
+            readOnly = isReadOnly
         )
     }
 }

@@ -7,7 +7,8 @@ sealed class Block {
      * @param text 文本内容
      */
     open class TextBlock(
-        open var text: String = ""
+        open var text: String = "",
+        open var isReadOnly: Boolean = false
     ) : Block()
 
     /**
@@ -18,6 +19,7 @@ sealed class Block {
      */
     class HeadingBlock(
         override var text: String,
+        override var isReadOnly: Boolean,
         var level: Int = 1
     ) : TextBlock()
 
