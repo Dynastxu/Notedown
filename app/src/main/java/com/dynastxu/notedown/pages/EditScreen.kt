@@ -48,7 +48,11 @@ fun EditScreen(navController: NavController, mainViewModel: MainViewModel, viewM
     val selectedNote by mainViewModel.selectedNote.collectAsState()
 
     mainViewModel.onEditBtnPressed = {
-        viewModel.setIsEditing(mainViewModel.isEditing.value)
+        val isEditing = mainViewModel.isEditing.value
+        viewModel.setIsEditing(isEditing)
+        if (!isEditing) {
+            viewModel.save()
+        }
     }
 
     // 自动滚动到焦点块
@@ -70,13 +74,6 @@ fun EditScreen(navController: NavController, mainViewModel: MainViewModel, viewM
                     onFocus = { viewModel.setFocusedIndex(index) },
                     onDelete = { viewModel.removeBlockAt(index) },
                     onUpdateText = { newText ->
-                        when (block) {
-                            is Block.HeadingBlock -> {}
-                            is Block.TextBlock -> {
-                                viewModel.updateTextBlock(index) { text = newText }
-                            }
-                            is Block.ImageBlock -> {}
-                        }
                     },
                     isReadOnly = !isEditing
                 )

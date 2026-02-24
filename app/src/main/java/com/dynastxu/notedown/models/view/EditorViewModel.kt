@@ -18,6 +18,13 @@ class EditorViewModel : ViewModel() {
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing
 
+    fun save() {
+        _blocks.value.forEach { block ->
+            if (block is Block.IBlockPreSaveAble) {
+                block.save()
+            } }
+    }
+
     fun setIsEditing(isEditing: Boolean) {
         _isEditing.value = isEditing
     }

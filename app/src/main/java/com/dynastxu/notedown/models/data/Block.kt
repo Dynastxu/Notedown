@@ -2,19 +2,42 @@ package com.dynastxu.notedown.models.data
 
 sealed class Block {
     /**
+     * 块可保存接口
+     */
+    interface IBlockPreSaveAble {
+        /**
+         * 保存更改
+         */
+        fun save(): Block
+    }
+
+    /**
      * 文本块
      *
      * @param text 文本内容
+     * @param isReadOnly 是否只读
      */
     open class TextBlock(
         open var text: String = "",
         open var isReadOnly: Boolean = false
-    ) : Block()
+    ) : Block(), IBlockPreSaveAble {
+        var savedText: String = ""
+            private set
+
+        init {
+            savedText = text
+        }
+
+        override fun save(): TextBlock {
+            savedText = text
+            return this
+        }
+    }
 
     /**
      * 标题块
      *
-     * @param text 文本内容
+     * @param savedText 文本内容
      * @param level 标题级别
      */
     class HeadingBlock(
