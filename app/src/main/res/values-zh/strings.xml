@@ -4,7 +4,7 @@
     <string name="title_home">主页</string>
     <string name="title_settings">设置</string>
     <string name="icon_desc_menu">菜单</string>
-    <string name="label_add_note">添加笔记</string>
+    <string name="label_add_note">新建笔记</string>
     <string name="label_search">搜索</string>
     <string name="error_fatal">应用遇到致命错误</string>
     <string name="error_stack">错误堆栈</string>
@@ -18,4 +18,5 @@
     <string name="title_edit">编辑</string>
     <string name="icon_desc_done">完成</string>
     <string name="icon_desc_edit">编辑</string>
+    <string name="btn_add_note">新建笔记</string>
 </resources>

@@ -18,4 +18,5 @@
     <string name="title_edit">Edit</string>
     <string name="icon_desc_done">Done</string>
     <string name="icon_desc_edit">Edit</string>
+    <string name="btn_add_note">Add Note</string>
 </resources>

@@ -73,8 +73,6 @@ fun EditScreen(navController: NavController, mainViewModel: MainViewModel, viewM
                     isFocused = index == focusedIndex,
                     onFocus = { viewModel.setFocusedIndex(index) },
                     onDelete = { viewModel.removeBlockAt(index) },
-                    onUpdateText = { newText ->
-                    },
                     isReadOnly = !isEditing
                 )
             }
@@ -86,10 +84,10 @@ fun EditScreen(navController: NavController, mainViewModel: MainViewModel, viewM
 fun BlockItem(
     block: Block,
     isFocused: Boolean,
-    onFocus: () -> Unit,
-    onDelete: () -> Unit,
-    onUpdateText: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onFocus: () -> Unit = {},
+    onDelete: () -> Unit = {},
+    onUpdateText: (String) -> Unit = {},
     isReadOnly: Boolean = false
 ){
     val borderColor = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent
