@@ -19,4 +19,5 @@
     <string name="icon_desc_done">完成</string>
     <string name="icon_desc_edit">编辑</string>
     <string name="btn_add_note">新建笔记</string>
+    <string name="icon_desc_bold">加粗</string>
 </resources>

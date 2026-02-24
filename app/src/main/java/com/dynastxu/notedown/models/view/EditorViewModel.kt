@@ -1,11 +1,13 @@
 package com.dynastxu.notedown.models.view
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.dynastxu.notedown.models.data.Block
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlin.collections.toMutableList
 
 class EditorViewModel : ViewModel() {
@@ -23,6 +25,7 @@ class EditorViewModel : ViewModel() {
             if (block is Block.IBlockPreSaveAble) {
                 block.save()
             } }
+        viewModelScope.launch {  } // TODO 保存逻辑
     }
 
     fun setIsEditing(isEditing: Boolean) {
