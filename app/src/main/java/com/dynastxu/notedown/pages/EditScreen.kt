@@ -1,6 +1,5 @@
 package com.dynastxu.notedown.pages
 
-import android.util.Log
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,13 +10,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -39,6 +38,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -109,18 +109,25 @@ fun EditScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (focusedBlock is Block.RichTextBlock) {
-                        // 加粗
-                        IconButton(onClick = {
-                            val range = selections[focusedIndex]
-                            if (range != null && !range.isEmpty()) {
-                                Log.d("加粗", "范围： $range")
-                                // TODO 加粗逻辑
+                        if (focusedBlock.state != null) {
+                            val isBold =
+                                focusedBlock.state!!.currentSpanStyle.fontWeight == FontWeight.Bold
+                            // 加粗
+                            IconButton(
+                                onClick = {
+                                    focusedBlock.state?.toggleSpanStyle(
+                                        SpanStyle(fontWeight = FontWeight.Bold)
+                                    )
+                                },
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    contentColor = if (isBold) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                                )
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.outline_format_bold_24),
+                                    stringResource(R.string.icon_desc_bold)
+                                )
                             }
-                        }) {
-                            Icon(
-                                painterResource(R.drawable.outline_format_bold_24),
-                                stringResource(R.string.icon_desc_bold)
-                            )
                         }
                     }
                 }
