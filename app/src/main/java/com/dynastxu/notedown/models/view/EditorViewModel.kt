@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import kotlin.collections.toMutableList
 
 class EditorViewModel : ViewModel() {
-    private val _blocks = MutableStateFlow<List<Block>>(listOf(Block.TextBlock()))
+    private val _blocks = MutableStateFlow<List<Block>>(listOf(Block.RichTextBlock()))
     val blocks = _blocks.asStateFlow()
 
     private val _focusedIndex = MutableStateFlow(0)
@@ -21,10 +21,6 @@ class EditorViewModel : ViewModel() {
     val isEditing: StateFlow<Boolean> = _isEditing
 
     fun save() {
-        _blocks.value.forEach { block ->
-            if (block is Block.IBlockPreSaveAble) {
-                block.save()
-            } }
         viewModelScope.launch {  } // TODO 保存逻辑
     }
 
@@ -50,10 +46,10 @@ class EditorViewModel : ViewModel() {
         }
     }
 
-    fun updateTextBlock(index: Int, update: Block.TextBlock.() -> Unit) {
+    fun updateTextBlock(index: Int, update: Block.RichTextBlock.() -> Unit) {
         _blocks.update { list ->
             list.mapIndexed { i, block ->
-                if (i == index && block is Block.TextBlock) {
+                if (i == index && block is Block.RichTextBlock) {
                     block.apply(update)
                 } else block
             }

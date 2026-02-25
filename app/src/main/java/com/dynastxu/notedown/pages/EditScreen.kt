@@ -1,5 +1,6 @@
 package com.dynastxu.notedown.pages
 
+import android.util.Log
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,45 +11,46 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.dynastxu.notedown.R
 import com.dynastxu.notedown.models.data.Block
 import com.dynastxu.notedown.models.view.EditorViewModel
 import com.dynastxu.notedown.models.view.MainViewModel
+import com.mohamedrejeb.richeditor.model.RichTextState
+import com.mohamedrejeb.richeditor.model.rememberRichTextState
+import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 
 @Composable
 fun EditScreen(
@@ -63,6 +65,7 @@ fun EditScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val selectedNote by mainViewModel.selectedNote.collectAsState()
+    val selections = remember { mutableStateMapOf<Int, IntRange?>() }
 
     mainViewModel.onEditBtnPressed = {
         val isEditing = mainViewModel.isEditing.value
@@ -89,13 +92,13 @@ fun EditScreen(
                     block = block,
                     isFocused = index == focusedIndex,
                     onFocus = { viewModel.setFocusedIndex(index) },
-                    onDelete = { viewModel.removeBlockAt(index) },
-                    isReadOnly = !isEditing
+                    readOnly = !isEditing
                 )
             }
         }
 
         if (isEditing) {
+            val focusedBlock = blocks[focusedIndex]
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -105,11 +108,20 @@ fun EditScreen(
                 Row(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            painterResource(R.drawable.outline_format_bold_24),
-                            stringResource(R.string.icon_desc_bold)
-                        )
+                    if (focusedBlock is Block.RichTextBlock) {
+                        // 加粗
+                        IconButton(onClick = {
+                            val range = selections[focusedIndex]
+                            if (range != null && !range.isEmpty()) {
+                                Log.d("加粗", "范围： $range")
+                                // TODO 加粗逻辑
+                            }
+                        }) {
+                            Icon(
+                                painterResource(R.drawable.outline_format_bold_24),
+                                stringResource(R.string.icon_desc_bold)
+                            )
+                        }
                     }
                 }
             }
@@ -122,10 +134,8 @@ fun BlockItem(
     block: Block,
     isFocused: Boolean,
     modifier: Modifier = Modifier,
-    onFocus: () -> Unit = {},
-    onDelete: () -> Unit = {},
-    onUpdateText: (String) -> Unit = {},
-    isReadOnly: Boolean = false
+    onFocus: () -> Unit,
+    readOnly: Boolean = false
 ) {
     val borderColor = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent
     val focusRequester = remember { FocusRequester() }
@@ -144,45 +154,51 @@ fun BlockItem(
             .focusable()
     ) {
         when (block) {
-            is Block.HeadingBlock -> HeadingBlockEditor(block, onUpdateText)
-            is Block.TextBlock -> TextBlockEditor(block, onUpdateText, isReadOnly)
-            is Block.ImageBlock -> ImageBlockView(block, onDelete)
+            is Block.RichTextBlock -> TextBlockEditor(
+                block = block,
+                readOnly = readOnly,
+                onTextChange = { text, state ->
+                    block.text = text
+                    block.state = state
+                }
+            )
         }
     }
 }
 
 @Composable
-fun HeadingBlockEditor(block: Block.HeadingBlock, onUpdateText: (String) -> Unit) {
-
-}
-
-@Composable
 fun TextBlockEditor(
-    block: Block.TextBlock,
-    onUpdateText: (String) -> Unit,
-    isReadOnly: Boolean = false
+    block: Block.RichTextBlock,
+    readOnly: Boolean,
+    onTextChange: (String, RichTextState) -> Unit
 ) {
-    var textFieldValue by remember(block.text) {
-        mutableStateOf(TextFieldValue(block.text))
+    val state = rememberRichTextState()
+
+    LaunchedEffect(Unit) {
+        state.setMarkdown(block.text)
     }
 
-    Column {
-        BasicTextField(
-            value = textFieldValue,
-            onValueChange = {
-                textFieldValue = it
-                onUpdateText(it.text)
-            },
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+    // 当 state 变化时通知外部
+    LaunchedEffect(state) {
+        snapshotFlow { state }
+            .collect { state ->
+                if (state != block.state) {
+                    onTextChange(state.toMarkdown(), state)
+                }
+            }
+    }
+
+    Column(
+        modifier = Modifier.padding(8.dp)
+    ) {
+        BasicRichTextEditor(
+            state = state,
+            readOnly = readOnly,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            readOnly = isReadOnly
+                .fillMaxWidth(),
+            textStyle = TextStyle(
+                fontSize = 16.sp
+            )
         )
     }
-}
-
-@Composable
-fun ImageBlockView(block: Block.ImageBlock, onDelete: () -> Unit) {
-
 }
