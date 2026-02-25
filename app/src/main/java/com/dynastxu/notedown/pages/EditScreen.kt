@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -23,8 +25,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +36,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -40,6 +46,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -80,7 +87,18 @@ fun EditScreen(
         listState.animateScrollToItem(focusedIndex)
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // 使用 State 来存储获取到的高度（像素值）
+    var heightInPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    // 转换为 DP
+    val heightInDp = remember(heightInPx) { density.run { heightInPx.toDp() } }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onSizeChanged { size: IntSize -> // 在回调中获取尺寸
+                heightInPx = size.height
+            }
+    ) {
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
@@ -88,47 +106,58 @@ fun EditScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             itemsIndexed(blocks) { index, block ->
+                val isLastItem = index == viewModel.blocks.collectAsState().value.size - 1
                 BlockItem(
                     block = block,
                     isFocused = index == focusedIndex,
                     onFocus = { viewModel.setFocusedIndex(index) },
-                    readOnly = !isEditing
+                    readOnly = !isEditing,
+                    modifier = if (isLastItem) Modifier.heightIn(heightInDp*0.6f) else Modifier
                 )
             }
         }
 
         if (isEditing) {
             val focusedBlock = blocks[focusedIndex]
-            Card(
+            EditToolBar(
+                block = focusedBlock,
                 modifier = Modifier
-                    .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .padding(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (focusedBlock is Block.RichTextBlock) {
-                        if (focusedBlock.state != null) {
-                            val isBold =
-                                focusedBlock.state!!.currentSpanStyle.fontWeight == FontWeight.Bold
-                            // 加粗
-                            IconButton(
-                                onClick = {
-                                    focusedBlock.state?.toggleSpanStyle(
-                                        SpanStyle(fontWeight = FontWeight.Bold)
-                                    )
-                                },
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    contentColor = if (isBold) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                                )
-                            ) {
-                                Icon(
-                                    painterResource(R.drawable.outline_format_bold_24),
-                                    stringResource(R.string.icon_desc_bold)
-                                )
-                            }
-                        }
+                    .imePadding()
+            )
+        }
+    }
+}
+
+@Composable
+fun EditToolBar(block: Block, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (block is Block.RichTextBlock) {
+                if (block.state != null) {
+                    val isBold =
+                        block.state!!.currentSpanStyle.fontWeight == FontWeight.Bold
+                    // 加粗
+                    IconButton(
+                        onClick = {
+                            block.state?.toggleSpanStyle(
+                                SpanStyle(fontWeight = FontWeight.Bold)
+                            )
+                        },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = if (isBold) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                        )
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.outline_format_bold_24),
+                            stringResource(R.string.icon_desc_bold)
+                        )
                     }
                 }
             }
