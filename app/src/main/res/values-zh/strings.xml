@@ -20,4 +20,7 @@
     <string name="icon_desc_edit">编辑</string>
     <string name="btn_add_note">新建笔记</string>
     <string name="icon_desc_bold">加粗</string>
+    <string name="icon_desc_italic">倾斜</string>
+    <string name="icon_desc_strikethrough">删除线</string>
+    <string name="icon_desc_insert_img">插入图片</string>
 </resources>

@@ -13,4 +13,9 @@ sealed class Block {
         var text: String = "",
         var state: RichTextState? = null
     ) : Block()
+
+    data class ImageBlock(
+        var src: String = "",
+        var alt: String = ""
+    ) : Block()
 }

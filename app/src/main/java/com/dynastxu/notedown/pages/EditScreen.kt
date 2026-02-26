@@ -1,6 +1,14 @@
 package com.dynastxu.notedown.pages
 
+import android.util.Log
+import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +26,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -29,7 +38,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -37,6 +45,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -44,18 +53,22 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.dynastxu.notedown.R
 import com.dynastxu.notedown.models.data.Block
 import com.dynastxu.notedown.models.view.EditorViewModel
 import com.dynastxu.notedown.models.view.MainViewModel
-import com.mohamedrejeb.richeditor.model.RichTextState
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 
@@ -112,7 +125,11 @@ fun EditScreen(
                     isFocused = index == focusedIndex,
                     onFocus = { viewModel.setFocusedIndex(index) },
                     readOnly = !isEditing,
-                    modifier = if (isLastItem) Modifier.heightIn(heightInDp*0.6f) else Modifier
+                    modifier = if (isLastItem) Modifier.heightIn(heightInDp * 0.6f) else Modifier,
+                    onImageClick = {
+                        mainViewModel.setSelectedImage(it.src)
+                        // TODO 导航到图片查看页面
+                    }
                 )
             }
         }
@@ -123,14 +140,15 @@ fun EditScreen(
                 block = focusedBlock,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .imePadding()
+                    .imePadding(),
+                viewModel = viewModel
             )
         }
     }
 }
 
 @Composable
-fun EditToolBar(block: Block, modifier: Modifier = Modifier) {
+fun EditToolBar(block: Block, modifier: Modifier = Modifier, viewModel: EditorViewModel) {
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -143,20 +161,79 @@ fun EditToolBar(block: Block, modifier: Modifier = Modifier) {
                 if (block.state != null) {
                     val isBold =
                         block.state!!.currentSpanStyle.fontWeight == FontWeight.Bold
+                    val isItalic =
+                        block.state!!.currentSpanStyle.fontStyle == FontStyle.Italic
+                    val isStrikethrough =
+                        block.state!!.currentSpanStyle.textDecoration == TextDecoration.LineThrough
+                    val context = LocalContext.current
+                    val photoPickerLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.PickMultipleVisualMedia(),
+                        onResult = { uris ->
+                            // 直接把 URI 列表传给 ViewModel 处理
+                            viewModel.onImagesSelected(uris, context)
+                        }
+                    )
+                    @Composable
+                    fun colors(highlight: Boolean): IconButtonColors {
+                        val color = LocalContentColor.current
+                        val highlightColor = MaterialTheme.colorScheme.primary
+                        return IconButtonDefaults.iconButtonColors(
+                            contentColor = if (highlight) highlightColor else color
+                        )
+                    }
                     // 加粗
                     IconButton(
                         onClick = {
-                            block.state?.toggleSpanStyle(
+                            block.state!!.toggleSpanStyle(
                                 SpanStyle(fontWeight = FontWeight.Bold)
                             )
                         },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = if (isBold) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                        )
+                        colors = colors(isBold)
                     ) {
                         Icon(
                             painterResource(R.drawable.outline_format_bold_24),
                             stringResource(R.string.icon_desc_bold)
+                        )
+                    }
+                    // 斜体
+                    IconButton(
+                        onClick = {
+                            block.state!!.toggleSpanStyle(
+                                SpanStyle(fontStyle = FontStyle.Italic)
+                            )
+                        },
+                        colors = colors(isItalic)
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.outline_format_italic_24),
+                            stringResource(R.string.icon_desc_italic)
+                        )
+                    }
+                    // 删除线
+                    IconButton(
+                        onClick = {
+                            block.state!!.toggleSpanStyle(
+                                SpanStyle(textDecoration = TextDecoration.LineThrough)
+                            )
+                        },
+                        colors = colors(isStrikethrough)
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.outline_format_strikethrough_24),
+                            stringResource(R.string.icon_desc_strikethrough)
+                        )
+                    }
+                    // 插入图片
+                    IconButton(
+                        onClick = {
+                            photoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.outline_image_24),
+                            stringResource(R.string.icon_desc_insert_img)
                         )
                     }
                 }
@@ -171,7 +248,8 @@ fun BlockItem(
     isFocused: Boolean,
     modifier: Modifier = Modifier,
     onFocus: () -> Unit,
-    readOnly: Boolean = false
+    readOnly: Boolean = false,
+    onImageClick: (Block.ImageBlock) -> Unit
 ) {
     val borderColor = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent
     val focusRequester = remember { FocusRequester() }
@@ -184,44 +262,37 @@ fun BlockItem(
 
     Box(
         modifier = modifier
-            .border(Dp.Hairline, borderColor, MaterialTheme.shapes.small)
+            .border(Dp.Hairline, borderColor, MaterialTheme.shapes.small) // TODO 仅在开发者模式下显示边框
             .onFocusChanged { if (it.isFocused) onFocus() }
             .focusRequester(focusRequester)
             .focusable()
     ) {
         when (block) {
-            is Block.RichTextBlock -> TextBlockEditor(
+            is Block.RichTextBlock -> TextBlock(
                 block = block,
-                readOnly = readOnly,
-                onTextChange = { text, state ->
-                    block.text = text
-                    block.state = state
-                }
+                readOnly = readOnly
+            )
+
+            is Block.ImageBlock -> ImageBlock(
+                block = block,
+                onClick = { onImageClick(it) },
+                onLongClick = {} // TODO
             )
         }
     }
 }
 
 @Composable
-fun TextBlockEditor(
+fun TextBlock(
     block: Block.RichTextBlock,
     readOnly: Boolean,
-    onTextChange: (String, RichTextState) -> Unit
 ) {
     val state = rememberRichTextState()
 
     LaunchedEffect(Unit) {
         state.setMarkdown(block.text)
-    }
-
-    // 当 state 变化时通知外部
-    LaunchedEffect(state) {
-        snapshotFlow { state }
-            .collect { state ->
-                if (state != block.state) {
-                    onTextChange(state.toMarkdown(), state)
-                }
-            }
+        // state.setMarkdown("""# 111""") // test. toHtml: <p><span style="font-size: 2.0em;"><b>111</b></span></p>
+        block.state = state
     }
 
     Column(
@@ -234,7 +305,37 @@ fun TextBlockEditor(
                 .fillMaxWidth(),
             textStyle = TextStyle(
                 fontSize = 16.sp
-            )
+            ),
+            onTextLayout = {
+                Log.d("文本内容", "markdown: ${state.toMarkdown()}")
+                Log.d("文本内容", "html: ${state.toHtml()}")
+                block.state = state
+            }
         )
     }
+}
+
+@Composable
+fun ImageBlock(
+    block: Block.ImageBlock,
+    onClick: (Block.ImageBlock) -> Unit,
+    onLongClick: (Block.ImageBlock) -> Unit
+) {
+    // 使用 Coil 的 AsyncImage 统一处理所有图片源
+    AsyncImage(
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(block.src)
+            .crossfade(true)
+            .build(),
+        contentDescription = block.alt,
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                enabled = true,
+                onClick = { onClick(block) },
+                onLongClick = { onLongClick(block) }
+            ),
+        placeholder = painterResource(R.drawable.outline_image_24),
+        error = painterResource(R.drawable.outline_broken_image_24),
+    )
 }

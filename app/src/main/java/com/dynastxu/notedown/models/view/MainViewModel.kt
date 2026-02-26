@@ -25,6 +25,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _notes = MutableStateFlow<List<String>>(emptyList())
     val notes: StateFlow<List<String>> = _notes
 
+    private val _selectedImage = MutableStateFlow("")
+    val selectedImage: StateFlow<String> = _selectedImage
+
     /**
      * 当顶部栏编辑按钮被按下时执行
      */
@@ -42,6 +45,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    fun setSelectedImage(src: String) {
+        _selectedImage.value = src
     }
 
     fun initNotesList() {

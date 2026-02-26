@@ -20,4 +20,7 @@
     <string name="icon_desc_edit">Edit</string>
     <string name="btn_add_note">Add Note</string>
     <string name="icon_desc_bold">Bold</string>
+    <string name="icon_desc_italic">Italic</string>
+    <string name="icon_desc_strikethrough">Strikethrough</string>
+    <string name="icon_desc_insert_img">Insert Image</string>
 </resources>
