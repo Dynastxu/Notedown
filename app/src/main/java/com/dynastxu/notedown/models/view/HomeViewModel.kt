@@ -13,10 +13,10 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 class HomeViewModel : ViewModel() {
-    private val _currentNotesList = MutableStateFlow<MutableList<Note>>(mutableListOf())
+    private val _currentNotesList = MutableStateFlow<List<Note>>(emptyList())
     val currentNotesList: StateFlow<List<Note>> = _currentNotesList
 
-    private val _currentFoldersList = MutableStateFlow<MutableList<Folder>>(mutableListOf())
+    private val _currentFoldersList = MutableStateFlow<List<Folder>>(emptyList())
     val currentFoldersList: StateFlow<List<Folder>> = _currentFoldersList
 
     private val gson = Gson()
@@ -32,22 +32,26 @@ class HomeViewModel : ViewModel() {
             if (!dir.exists() || !dir.isDirectory || !dir.canRead()) {
                 return@launch
             }
+            val notesList = mutableListOf<Note>()
+            val folderList = mutableListOf<Folder>()
             // 获取所有子文件和子目录
             val files = dir.listFiles() ?: return@launch
             // 遍历所有文件
             files.forEach {
                 if (it.isDirectory) {
                     if (isNoteFolder(it)) {
-                        _currentNotesList.value.add(
+                        notesList.add(
                             Note(it, readNoteConfigs(it))
                         )
                     } else {
-                        _currentFoldersList.value.add(
+                        folderList.add(
                             Folder(it, countNotesNum(it))
                         )
                     }
                 }
             }
+            _currentNotesList.value = notesList.toList()
+            _currentFoldersList.value = folderList.toList()
         }
     }
 

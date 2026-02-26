@@ -48,7 +48,7 @@ fun HomeScreen(navController: NavController, mainViewModel: MainViewModel, viewM
     val notes by viewModel.currentNotesList.collectAsState()
     val folders by viewModel.currentFoldersList.collectAsState()
 
-    LaunchedEffect(notes, folders) {
+    LaunchedEffect(notes, folders, currentFolder) {
         if (currentFolder == null) return@LaunchedEffect
         viewModel.scanNoteFolders(currentFolder!!)
     }
