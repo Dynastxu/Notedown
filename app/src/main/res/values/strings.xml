@@ -23,4 +23,6 @@
     <string name="icon_desc_italic">Italic</string>
     <string name="icon_desc_strikethrough">Strikethrough</string>
     <string name="icon_desc_insert_img">Insert Image</string>
+    <string name="no_note">Not Have Any Note</string>
+    <string name="text_modified_on">Modified on</string>
 </resources>

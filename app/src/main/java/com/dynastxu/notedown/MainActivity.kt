@@ -162,7 +162,7 @@ fun AppTopBar(
         actions = {
             when (currentRoute) {
                 ROUTE_EDIT -> {
-                    IconButton(onClick = { viewModel.editBtnPressed() }) {
+                    IconButton(onClick = { viewModel.pressEditBtn() }) {
                         if (isEditing) {
                             Icon(
                                 Icons.Default.Done,
@@ -207,6 +207,7 @@ fun DrawerContent(
         )
         HorizontalDivider()
         Spacer(Modifier.height(16.dp))
+        // 添加笔记
         NavigationDrawerItem(
             label = { Text(stringResource(R.string.label_add_note)) },
             selected = false,

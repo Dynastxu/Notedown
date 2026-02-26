@@ -23,4 +23,6 @@
     <string name="icon_desc_italic">倾斜</string>
     <string name="icon_desc_strikethrough">删除线</string>
     <string name="icon_desc_insert_img">插入图片</string>
+    <string name="no_note">没有笔记</string>
+    <string name="text_modified_on">修改于</string>
 </resources>

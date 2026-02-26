@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.time.LocalDate
 import java.util.UUID
 
 class EditorViewModel : ViewModel() {
@@ -25,6 +26,44 @@ class EditorViewModel : ViewModel() {
 
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing
+
+    private val _note = MutableStateFlow("")
+    val note : StateFlow<String> = _note
+
+    fun createNote(folder: File) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val newFolder = createUniqueFolder(folder, LocalDate.now().toString())
+            if (newFolder.mkdirs()) {
+                File(newFolder, "imgs").mkdirs()
+                File(newFolder, "${newFolder.name}.md").createNewFile()
+            }
+        }
+    }
+
+    fun readNote(note: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            // TODO
+        }
+    }
+
+    /**
+     * 创建唯一名称的文件夹，如果已存在则添加数字后缀
+     *
+     * @param parent 父文件夹
+     * @param baseName 基础名称
+     * @return 新的文件夹对象
+     */
+    private fun createUniqueFolder(parent: File, baseName: String): File {
+        var counter = 1
+        var newName = baseName
+        var newFolder = File(parent, newName)
+        while (newFolder.exists()) {
+            newName = "${baseName}(${counter})"
+            newFolder = File(parent, newName)
+            counter++
+        }
+        return newFolder
+    }
 
     fun save() {
         viewModelScope.launch {
@@ -104,8 +143,7 @@ class EditorViewModel : ViewModel() {
      * 将 Uri 指向的图片复制到应用专属缓存目录，返回文件绝对路径
      */
     private suspend fun copyUriToCache(uri: Uri, context: Context): String? = withContext(Dispatchers.IO) {
-        val contentResolver = context.contentResolver // 需使用 AndroidViewModel 或通过构造注入 Context
-        // 注意：若使用 AndroidViewModel，可获取 Application Context
+        val contentResolver = context.contentResolver
         val inputStream = contentResolver.openInputStream(uri) ?: return@withContext null
         // 获取 MIME 类型并转换为对应扩展名
         val mimeType = contentResolver.getType(uri) ?: "image/jpeg"
