@@ -341,7 +341,6 @@ fun ImageBlock(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
-                enabled = true,
                 onClick = { onClick(block) },
                 onLongClick = { onLongClick(block) }
             ),

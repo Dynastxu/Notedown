@@ -25,4 +25,9 @@
     <string name="icon_desc_insert_img">Insert Image</string>
     <string name="no_note">Not Have Any Note</string>
     <string name="text_modified_on">Modified on</string>
+    <string name="icon_desc_share">Share</string>
+    <string name="icon_desc_delete">Delete</string>
+    <string name="icon_desc_move">Move</string>
+    <string name="icon_desc_export">Export</string>
+    <string name="icon_desc_cancel">Cancel</string>
 </resources>

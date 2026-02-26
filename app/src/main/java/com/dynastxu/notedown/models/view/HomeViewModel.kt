@@ -19,7 +19,85 @@ class HomeViewModel : ViewModel() {
     private val _currentFoldersList = MutableStateFlow<List<Folder>>(emptyList())
     val currentFoldersList: StateFlow<List<Folder>> = _currentFoldersList
 
+    private val _selectMode = MutableStateFlow(false)
+    val selectMode: StateFlow<Boolean> = _selectMode
+
+    private val _selections = MutableStateFlow<List<Int>>(emptyList())
+    val selections: StateFlow<List<Int>> = _selections
+
     private val gson = Gson()
+
+    fun setSelectMode(selectMode: Boolean) {
+        _selectMode.value = selectMode
+        _selections.value = emptyList()
+    }
+
+    fun select(index: Int) {
+        val newList = _selections.value.toMutableList()
+        if (_selections.value.contains(index)) {
+            newList.remove(index)
+        } else {
+            newList.add(index)
+        }
+        _selections.value = newList
+    }
+
+    fun onChooseNote(note: Note) {
+        // TODO
+    }
+
+    fun onChooseFolder(folder: Folder) {
+        // TODO
+    }
+
+    fun onDelete() {
+        _selections.value.forEach { index ->
+            if (index >= _currentFoldersList.value.size) {
+                val newIndex = index - _currentFoldersList.value.size
+                delete(_currentNotesList.value[newIndex])
+            } else {
+                delete(_currentFoldersList.value[index])
+            }
+        }
+        _selections.value = emptyList()
+    }
+
+    private fun delete(note: Note) {
+        viewModelScope.launch(Dispatchers.IO) {
+            deleteRecursively(note.folder)
+        }
+    }
+
+    private fun delete(folder: Folder) {
+        viewModelScope.launch(Dispatchers.IO) {
+            deleteRecursively(folder.folder)
+        }
+    }
+
+
+    /**
+     * 递归删除文件或文件夹
+     *
+     * @param file 要删除的文件或文件夹
+     * @return 删除是否成功
+     */
+    private fun deleteRecursively(file: File): Boolean {
+        if (!file.exists()) return true
+
+        return if (file.isDirectory) {
+            // 如果是目录，先删除所有子文件和子目录
+            file.listFiles()?.forEach { child ->
+                if (!deleteRecursively(child)) {
+                    return false
+                }
+            }
+            // 然后删除空目录
+            file.delete()
+        } else {
+            // 如果是文件，直接删除
+            file.delete()
+        }
+    }
 
     /**
      * 扫描指定目录下包含 MD 文件的子文件夹

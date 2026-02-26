@@ -1,6 +1,8 @@
 package com.dynastxu.notedown.pages
 
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,11 +13,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,11 +45,16 @@ import java.io.File
  * 主页 Composable
  */
 @Composable
-fun HomeScreen(navController: NavController, mainViewModel: MainViewModel, viewModel: HomeViewModel = viewModel()) {
+fun HomeScreen(
+    navController: NavController,
+    mainViewModel: MainViewModel,
+    viewModel: HomeViewModel = viewModel()
+) {
     val folderReady by mainViewModel.folderReady.collectAsState()
     val currentFolder by mainViewModel.currentFolder.collectAsState()
     val notes by viewModel.currentNotesList.collectAsState()
     val folders by viewModel.currentFoldersList.collectAsState()
+    val selectMode by viewModel.selectMode.collectAsState()
 
     LaunchedEffect(notes, folders, currentFolder) {
         if (currentFolder == null) return@LaunchedEffect
@@ -66,6 +74,7 @@ fun HomeScreen(navController: NavController, mainViewModel: MainViewModel, viewM
                 CircularProgressIndicator()
             }
         }
+
         else -> {
             // 文件夹已准备好，显示内容
             Column(
@@ -94,7 +103,13 @@ fun HomeScreen(navController: NavController, mainViewModel: MainViewModel, viewM
                     NotesList(
                         navController = navController,
                         currentFolder = currentFolder!!,
-                        viewModel = viewModel
+                        viewModel = viewModel,
+                        onLongClick = { index ->
+                            if (!selectMode) {
+                                viewModel.setSelectMode(true)
+                            }
+                            viewModel.select(index)
+                        }
                     )
                 }
             }
@@ -103,34 +118,157 @@ fun HomeScreen(navController: NavController, mainViewModel: MainViewModel, viewM
 }
 
 @Composable
-fun NotesList(navController: NavController, currentFolder: File, viewModel: HomeViewModel, modifier: Modifier = Modifier) {
+fun NotesList(
+    navController: NavController,
+    currentFolder: File,
+    viewModel: HomeViewModel,
+    modifier: Modifier = Modifier,
+    onLongClick: (Int) -> Unit
+) {
     val notes by viewModel.currentNotesList.collectAsState()
     val folders by viewModel.currentFoldersList.collectAsState()
+    val selectMode by viewModel.selectMode.collectAsState()
+    val selections by viewModel.selections.collectAsState()
 
-    LazyColumn(
+    Box(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(4.dp)
+            .fillMaxSize()
+            .padding(8.dp)
     ) {
-        items(folders) {
-            FolderItem(
-                folder = it
-            )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            items(folders.size) { index ->
+                FolderItem(
+                    folder = folders[index],
+                    onLongClick = { onLongClick(index) },
+                    onClick = {
+                        if (selectMode) {
+                            viewModel.select(index)
+                        } else {
+                            viewModel.onChooseFolder(folders[index])
+                        }
+                    },
+                    selected = selections.contains(index)
+                )
+            }
+            items(notes.size) { index ->
+                val actualIndex = index + folders.size
+                NoteItem(
+                    note = notes[index],
+                    onLongClick = { onLongClick(actualIndex) },
+                    onClick = {
+                        if (selectMode) {
+                            viewModel.select(actualIndex)
+                        } else {
+                            viewModel.onChooseNote(notes[index])
+                        }
+                    },
+                    selected = selections.contains(actualIndex)
+                )
+            }
         }
-        items(notes) {
-            NoteItem(
-                note = it
+
+        if (selectMode) {
+            BottomToolBar(
+                viewModel = viewModel,
+                currentFolder = currentFolder,
+                modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
     }
 }
 
 @Composable
-fun FolderItem(folder: Folder, modifier: Modifier = Modifier) {
+fun BottomToolBar(viewModel: HomeViewModel, modifier: Modifier = Modifier, currentFolder: File) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            // 导出
+            IconButton(
+                onClick = {} // TODO
+            ) {
+                Icon(
+                    painterResource(R.drawable.outline_export_notes_24),
+                    stringResource(R.string.icon_desc_export)
+                )
+            }
+            // 移动
+            IconButton(
+                onClick = {} // TODO
+            ) {
+                Icon(
+                    painterResource(R.drawable.outline_move_item_24),
+                    stringResource(R.string.icon_desc_move)
+                )
+            }
+            // 删除
+            IconButton(
+                onClick = {
+                    viewModel.onDelete()
+                    viewModel.scanNoteFolders(currentFolder)
+                }
+            ) {
+                Icon(
+                    painterResource(R.drawable.outline_delete_24),
+                    stringResource(R.string.icon_desc_delete)
+                )
+            }
+            // 分享
+            IconButton(
+                onClick = {} // TODO
+            ) {
+                Icon(
+                    painterResource(R.drawable.outline_share_24),
+                    stringResource(R.string.icon_desc_share)
+                )
+            }
+            // 取消
+            IconButton(
+                onClick = {
+                    viewModel.setSelectMode(false)
+                }
+            ) {
+                Icon(
+                    painterResource(R.drawable.outline_cancel_24),
+                    stringResource(R.string.icon_desc_cancel)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FolderItem(
+    folder: Folder,
+    modifier: Modifier = Modifier,
+    onLongClick: () -> Unit = {},
+    onClick: () -> Unit = {},
+    selected: Boolean = false
+) {
     Card(
         modifier = modifier
             .padding(4.dp)
             .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
+        colors = if (selected) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
+        } else {
+            CardDefaults.cardColors()
+        }
     ) {
         Row(
             modifier = Modifier
@@ -172,11 +310,28 @@ fun FolderItem(folder: Folder, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun NoteItem(note: Note, modifier: Modifier = Modifier) {
+fun NoteItem(
+    note: Note,
+    modifier: Modifier = Modifier,
+    onLongClick: () -> Unit = {},
+    onClick: () -> Unit = {},
+    selected: Boolean = false
+) {
     Card(
         modifier = modifier
             .padding(4.dp)
             .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
+        colors = if (selected) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
+        } else {
+            CardDefaults.cardColors()
+        }
     ) {
         Row(
             modifier = Modifier
@@ -216,11 +371,16 @@ fun NoteItem(note: Note, modifier: Modifier = Modifier) {
 //                }
 
                 // 日期信息
-                val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                val dateFormat =
+                    java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
 
                 if (note.config.editDate != null) {
                     Text(
-                        text = "${stringResource(R.string.text_modified_on)} ${dateFormat.format(note.config.editDate)}",
+                        text = "${stringResource(R.string.text_modified_on)} ${
+                            dateFormat.format(
+                                note.config.editDate
+                            )
+                        }",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

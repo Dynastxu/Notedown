@@ -25,4 +25,9 @@
     <string name="icon_desc_insert_img">插入图片</string>
     <string name="no_note">没有笔记</string>
     <string name="text_modified_on">修改于</string>
+    <string name="icon_desc_share">分享</string>
+    <string name="icon_desc_delete">删除</string>
+    <string name="icon_desc_move">移动</string>
+    <string name="icon_desc_export">导出</string>
+    <string name="icon_desc_cancel">取消</string>
 </resources>
