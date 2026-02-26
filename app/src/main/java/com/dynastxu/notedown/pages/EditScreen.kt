@@ -1,13 +1,10 @@
 package com.dynastxu.notedown.pages
 
 import android.util.Log
-import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +14,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -125,11 +121,12 @@ fun EditScreen(
                     isFocused = index == focusedIndex,
                     onFocus = { viewModel.setFocusedIndex(index) },
                     readOnly = !isEditing,
-                    modifier = if (isLastItem) Modifier.heightIn(heightInDp * 0.6f) else Modifier,
+//                    modifier = if (isLastItem) Modifier.heightIn(heightInDp * 0.6f) else Modifier,
                     onImageClick = {
                         mainViewModel.setSelectedImage(it.src)
                         // TODO 导航到图片查看页面
-                    }
+                    },
+                    isLastBlock = isLastItem
                 )
             }
         }
@@ -249,7 +246,8 @@ fun BlockItem(
     modifier: Modifier = Modifier,
     onFocus: () -> Unit,
     readOnly: Boolean = false,
-    onImageClick: (Block.ImageBlock) -> Unit
+    onImageClick: (Block.ImageBlock) -> Unit,
+    isLastBlock: Boolean = false
 ) {
     val borderColor = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent
     val focusRequester = remember { FocusRequester() }
@@ -270,7 +268,8 @@ fun BlockItem(
         when (block) {
             is Block.RichTextBlock -> TextBlock(
                 block = block,
-                readOnly = readOnly
+                readOnly = readOnly,
+                isLastBlock = isLastBlock
             )
 
             is Block.ImageBlock -> ImageBlock(
@@ -286,6 +285,7 @@ fun BlockItem(
 fun TextBlock(
     block: Block.RichTextBlock,
     readOnly: Boolean,
+    isLastBlock: Boolean = false
 ) {
     val state = rememberRichTextState()
 
@@ -296,13 +296,15 @@ fun TextBlock(
     }
 
     Column(
-        modifier = Modifier.padding(8.dp)
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxSize()
     ) {
         BasicRichTextEditor(
             state = state,
             readOnly = readOnly,
             modifier = Modifier
-                .fillMaxWidth(),
+                .fillMaxSize(),
             textStyle = TextStyle(
                 fontSize = 16.sp
             ),
@@ -310,7 +312,8 @@ fun TextBlock(
                 Log.d("文本内容", "markdown: ${state.toMarkdown()}")
                 Log.d("文本内容", "html: ${state.toHtml()}")
                 block.state = state
-            }
+            },
+            minLines = if (isLastBlock) 32 else 1
         )
     }
 }
