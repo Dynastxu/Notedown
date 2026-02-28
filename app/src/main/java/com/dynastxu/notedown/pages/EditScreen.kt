@@ -99,11 +99,10 @@ fun EditScreen(
         viewModel.setIsEditing(mainViewModel.isEditing.value)
     }
 
-    // 启用自动滚动会导致聚焦索引异常，原因不明
-//    // 自动滚动到焦点块
-//    LaunchedEffect(focusedIndex) {
-//        listState.animateScrollToItem(focusedIndex)
-//    }
+    // 自动滚动到焦点块
+    LaunchedEffect(focusedIndex) {
+        listState.animateScrollToItem(focusedIndex)
+    }
 
     Box(
         modifier = Modifier
