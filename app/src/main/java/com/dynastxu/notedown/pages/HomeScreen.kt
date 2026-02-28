@@ -34,9 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.dynastxu.notedown.R
-import com.dynastxu.notedown.ROUTE_EDIT
 import com.dynastxu.notedown.models.data.Folder
 import com.dynastxu.notedown.models.data.Note
+import com.dynastxu.notedown.models.data.Route
 import com.dynastxu.notedown.models.view.HomeViewModel
 import com.dynastxu.notedown.models.view.MainViewModel
 import java.io.File
@@ -95,7 +95,7 @@ fun HomeScreen(
                         Text(stringResource(R.string.no_note))
                         Spacer(Modifier.height(8.dp))
                         Button(onClick = {
-                            navController.navigate(ROUTE_EDIT)
+                            navController.navigate(Route.EDIT)
                             mainViewModel.selectNote()
                         }) { Text(stringResource(R.string.btn_add_note)) }
                     }
