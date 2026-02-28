@@ -303,14 +303,14 @@ fun TextBlock(
     readOnly: Boolean,
     isLastBlock: Boolean = false
 ) {
-    val state = rememberRichTextState()
+    var state = rememberRichTextState()
 
-    LaunchedEffect(Unit) {
-        // 设置初始文本
-        if (block.initialText.isNotEmpty()) {
-            state.setMarkdown(block.initialText)
-        }
+    // 设置初始文本
+    if (block.state == null) {
+        state.setMarkdown(block.initialText)
         block.state = state
+    } else {
+        state = block.state!!
     }
 
     Column(

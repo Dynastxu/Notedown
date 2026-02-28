@@ -26,10 +26,10 @@ class EditorViewModel : ViewModel() {
     }
 
     private val _blocks = MutableStateFlow<List<Block>>(listOf(Block.RichTextBlock()))
-    val blocks = _blocks.asStateFlow()
+    val blocks: StateFlow<List<Block>> = _blocks
 
     private val _focusedIndex = MutableStateFlow(0)
-    val focusedIndex = _focusedIndex.asStateFlow()
+    val focusedIndex: StateFlow<Int> = _focusedIndex
 
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing
@@ -217,6 +217,7 @@ class EditorViewModel : ViewModel() {
         selectionStart: Int,
         selectionEnd: Int
     ) {
+        if (uris.isEmpty()) return
         viewModelScope.launch(Dispatchers.IO) {
             val paths = uris.mapNotNull { uri ->
                 val folder = note.folder
@@ -267,26 +268,31 @@ class EditorViewModel : ViewModel() {
         selectionStart: Int,
         selectionEnd: Int
     ) {
-        // FIXME 逻辑不正确
         // 分割内容保留格式
         val leftContent = fullContent.take(selectionStart)
         val rightContent = fullContent.substring(selectionEnd)
 
         // 创建新的文本块保持原有格式
-        val leftBlock = Block.RichTextBlock()
-        leftBlock.state?.setMarkdown(leftContent)
+        val leftBlock = Block.RichTextBlock(initialText = leftContent)
+        val rightBlock = Block.RichTextBlock(initialText = rightContent)
 
-        val rightBlock = Block.RichTextBlock()
-        rightBlock.state?.setMarkdown(rightContent)
+        val blocks = _blocks.value.toMutableList()
 
-        // 插入图片和文本块
-        addBlockAfter(_focusedIndex.value, leftBlock)
-        paths.forEach { path ->
-            addBlockAfter(_focusedIndex.value + 1, Block.ImageBlock(src = path))
+        // 要替换的新列表
+        val newBlocks = mutableListOf<Block>()
+        newBlocks.add(leftBlock)
+        paths.forEachIndexed { index, path ->
+            newBlocks.add(Block.ImageBlock(src = path))
+            if (index != paths.lastIndex) {
+                newBlocks.add(Block.RichTextBlock())
+            }
         }
-        addBlockAfter(_focusedIndex.value + 1 + paths.size, rightBlock)
+        newBlocks.add(rightBlock)
 
-        // 移除原来的块
-        removeBlockAt(_focusedIndex.value)
+        // 替换当前焦点位置的块为新的块列表
+        blocks.removeAt(_focusedIndex.value)
+        blocks.addAll(_focusedIndex.value, newBlocks)
+
+        _blocks.value = blocks
     }
 }
