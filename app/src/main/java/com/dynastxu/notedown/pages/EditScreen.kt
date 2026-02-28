@@ -6,10 +6,10 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,17 +30,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -103,10 +102,11 @@ fun EditScreen(
         viewModel.setIsEditing(mainViewModel.isEditing.value)
     }
 
-    // 自动滚动到焦点块
-    LaunchedEffect(focusedIndex) {
-        listState.animateScrollToItem(focusedIndex)
-    }
+    // 启用自动滚动会导致聚焦索引异常，原因不明
+//    // 自动滚动到焦点块
+//    LaunchedEffect(focusedIndex) {
+//        listState.animateScrollToItem(focusedIndex)
+//    }
 
     // 转换为 DP
     Box(
@@ -121,16 +121,21 @@ fun EditScreen(
         ) {
             itemsIndexed(blocks) { index, block ->
                 val isLastItem = index == viewModel.blocks.collectAsState().value.size - 1
+                val borderColor =
+                    if (index == focusedIndex) MaterialTheme.colorScheme.primary else Color.Transparent
                 BlockItem(
                     block = block,
-                    isFocused = index == focusedIndex,
-                    onFocus = { viewModel.setFocusedIndex(index) },
                     readOnly = !isEditing,
                     onImageClick = {
                         mainViewModel.setSelectedImage(it.src)
                         // TODO 导航到图片查看页面
                     },
-                    isLastBlock = isLastItem
+                    isLastBlock = isLastItem,
+                    onNeedFocus = {
+                        viewModel.setFocusedIndex(index)
+                    },
+                    modifier = Modifier
+                        .border(Dp.Hairline, borderColor, MaterialTheme.shapes.small)
                 )
             }
         }
@@ -150,7 +155,12 @@ fun EditScreen(
 }
 
 @Composable
-fun EditToolBar(block: Block, modifier: Modifier = Modifier, viewModel: EditorViewModel, note: Note) {
+fun EditToolBar(
+    block: Block,
+    modifier: Modifier = Modifier,
+    viewModel: EditorViewModel,
+    note: Note
+) {
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -186,6 +196,7 @@ fun EditToolBar(block: Block, modifier: Modifier = Modifier, viewModel: EditorVi
                             )
                         }
                     )
+
                     @Composable
                     fun colors(highlight: Boolean): IconButtonColors {
                         val color = LocalContentColor.current
@@ -255,45 +266,66 @@ fun EditToolBar(block: Block, modifier: Modifier = Modifier, viewModel: EditorVi
     }
 }
 
+/**
+ * 块
+ *
+ * @param block 块
+ * @param readOnly 只读
+ * @param onImageClick 图片点击事件
+ * @param onNeedFocus 需要焦点事件
+ * @param isLastBlock 属于最后一个块
+ */
 @Composable
 fun BlockItem(
     block: Block,
-    isFocused: Boolean,
     modifier: Modifier = Modifier,
-    onFocus: () -> Unit,
     readOnly: Boolean = false,
-    onImageClick: (Block.ImageBlock) -> Unit,
-    isLastBlock: Boolean = false
+    onImageClick: (Block.ImageBlock) -> Unit = {},
+    isLastBlock: Boolean = false,
+    onNeedFocus: () -> Unit = {}
 ) {
-    val borderColor = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent
-    val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(isFocused) {
-        if (isFocused) {
-            focusRequester.requestFocus()
-        }
-    }
-
     Box(
         modifier = modifier
-            .border(Dp.Hairline, borderColor, MaterialTheme.shapes.small) // TODO 仅在开发者模式下显示边框
-            .onFocusChanged { if (it.isFocused) onFocus() }
-            .focusRequester(focusRequester)
-            .focusable()
     ) {
         when (block) {
             is Block.RichTextBlock -> TextBlock(
                 block = block,
                 readOnly = readOnly,
-                isLastBlock = isLastBlock
+                isLastBlock = isLastBlock,
+                onTextLayout = { onNeedFocus() }
             )
 
             is Block.ImageBlock -> ImageBlock(
                 block = block,
                 onClick = { onImageClick(it) },
-                onLongClick = {} // TODO
+                onLongClick = {}, // TODO
             )
         }
+
+        // 父组件拦截层（透明，覆盖子组件）
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        // 等待按下事件（此时事件尚未被消费）
+                        val down = awaitFirstDown(requireUnconsumed = false)
+
+                        // 等待抬起事件，确认是一次点击
+                        val upEvent = awaitPointerEvent()
+                        if (upEvent.type == PointerEventType.Release) {
+                            val up = upEvent.changes.first()
+                            // 可选：检查移动距离，防止滑动误触
+                            val distance = (up.position - down.position).getDistance()
+                            if (distance < 10.dp.toPx()) {
+                                // 执行父组件逻辑
+                                onNeedFocus()
+                            }
+                        }
+                        // 注意：没有调用任何 consume 方法，事件将继续传递
+                    }
+                }
+        )
     }
 }
 
@@ -301,7 +333,8 @@ fun BlockItem(
 fun TextBlock(
     block: Block.RichTextBlock,
     readOnly: Boolean,
-    isLastBlock: Boolean = false
+    isLastBlock: Boolean = false,
+    onTextLayout: (TextLayoutResult) -> Unit
 ) {
     var state = rememberRichTextState()
 
@@ -313,27 +346,23 @@ fun TextBlock(
         state = block.state!!
     }
 
-    Column(
+    BasicRichTextEditor(
+        state = state,
+        readOnly = readOnly,
         modifier = Modifier
-            .padding(8.dp)
             .fillMaxSize()
-    ) {
-        BasicRichTextEditor(
-            state = state,
-            readOnly = readOnly,
-            modifier = Modifier
-                .fillMaxSize(),
-            textStyle = TextStyle(
-                fontSize = 16.sp
-            ),
-            onTextLayout = {
-                Log.d("文本内容", "markdown: ${state.toMarkdown()}")
-                Log.d("文本内容", "html: ${state.toHtml()}")
-                block.state = state
-            },
-            minLines = if (isLastBlock) 32 else 1
-        )
-    }
+            .padding(8.dp),
+        textStyle = TextStyle(
+            fontSize = 16.sp
+        ),
+        onTextLayout = {
+            Log.d("文本内容", "markdown: ${state.toMarkdown()}")
+            Log.d("文本内容", "html: ${state.toHtml()}")
+            block.state = state
+            onTextLayout(it)
+        },
+        minLines = if (isLastBlock) 32 else 1
+    )
 }
 
 @Composable

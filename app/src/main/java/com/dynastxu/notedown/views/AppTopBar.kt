@@ -1,10 +1,5 @@
 package com.dynastxu.notedown.views
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -16,6 +11,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -56,7 +52,7 @@ fun AppTopBar(
                 Route.HOME -> {
                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                         Icon(
-                            Icons.Default.Menu,
+                            painterResource(R.drawable.outline_menu_24),
                             stringResource(R.string.icon_desc_menu)
                         )
                     }
@@ -66,7 +62,7 @@ fun AppTopBar(
                     // 点击返回上一页
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
-                            Icons.AutoMirrored.Default.ArrowBack,
+                            painterResource(R.drawable.outline_arrow_back_24),
                             stringResource(R.string.icon_desc_back)
                         )
                     }
@@ -79,12 +75,12 @@ fun AppTopBar(
                     IconButton(onClick = { viewModel.pressEditBtn() }) {
                         if (isEditing) {
                             Icon(
-                                Icons.Default.Done,
+                                painterResource(R.drawable.outline_save_24),
                                 stringResource(R.string.icon_desc_done)
                             )
                         } else {
                             Icon(
-                                Icons.Default.Edit,
+                                painterResource(R.drawable.outline_edit_24),
                                 stringResource(R.string.icon_desc_edit)
                             )
                         }

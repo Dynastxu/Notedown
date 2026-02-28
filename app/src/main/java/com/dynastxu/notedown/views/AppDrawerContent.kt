@@ -5,10 +5,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -18,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -63,13 +60,13 @@ fun AppDrawerContent(
                 navController.navigate(Route.EDIT)
                 scope.launch { drawerState.close() }
             },
-            icon = { Icon(Icons.Default.Add, stringResource(R.string.label_add_note)) }
+            icon = { Icon(painterResource(R.drawable.outline_add_notes_24), stringResource(R.string.label_add_note)) }
         )
         NavigationDrawerItem(
             label = { Text(stringResource(R.string.label_search)) },
             selected = false,
             onClick = { TODO() },
-            icon = { Icon(Icons.Default.Search, stringResource(R.string.label_search)) }
+            icon = { Icon(painterResource(R.drawable.outline_search_24), stringResource(R.string.label_search)) }
         )
         HorizontalDivider(thickness = Dp.Hairline)
         NavigationDrawerItem(
@@ -79,7 +76,7 @@ fun AppDrawerContent(
                 navController.navigate(Route.SETTINGS)
                 scope.launch { drawerState.close() }
             },
-            icon = { Icon(Icons.Default.Settings, stringResource(R.string.title_settings)) }
+            icon = { Icon(painterResource(R.drawable.outline_settings_24), stringResource(R.string.title_settings)) }
         )
     }
 }

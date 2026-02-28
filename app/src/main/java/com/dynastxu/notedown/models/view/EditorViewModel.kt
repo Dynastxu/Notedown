@@ -215,6 +215,7 @@ class EditorViewModel : ViewModel() {
 
     fun setFocusedIndex(index: Int) {
         _focusedIndex.value = index.coerceIn(0, _blocks.value.lastIndex)
+        Log.d("UI", "聚焦索引： $index")
     }
 
     fun moveFocusUp() {
