@@ -154,7 +154,7 @@ class EditorViewModel : ViewModel() {
         viewModelScope.launch {
             Log.i("保存笔记", "正在保存")
             val content = StringBuilder()
-            _blocks.value.forEachIndexed { index, block ->
+            _blocks.value.forEach { block ->
                 when (block) {
                     is Block.RichTextBlock -> {
                         content.append(block.state?.toMarkdown())
