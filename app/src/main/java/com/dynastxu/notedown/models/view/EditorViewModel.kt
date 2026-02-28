@@ -242,7 +242,9 @@ class EditorViewModel : ViewModel() {
         if (uris.isEmpty()) return
         viewModelScope.launch(Dispatchers.IO) {
             val paths = uris.mapNotNull { uri ->
-                val folder = note.folder
+                val folder = File(note.folder, "imgs").apply { 
+                    if (!exists()) mkdirs() 
+                }
                 copyUriToFolder(folder, uri, context) // 复制，返回本地路径
             }
             // 在主线程更新 blocks
