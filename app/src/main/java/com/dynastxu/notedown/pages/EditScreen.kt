@@ -357,5 +357,9 @@ fun ImageBlock(
             ),
         placeholder = painterResource(R.drawable.outline_image_24),
         error = painterResource(R.drawable.outline_broken_image_24),
+        onError = {
+            Log.e("图片加载", "图片加载失败")
+            Log.e("图片加载", "路径： ${block.src}")
+        }
     )
 }

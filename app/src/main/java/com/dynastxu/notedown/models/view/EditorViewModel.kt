@@ -10,7 +10,6 @@ import com.dynastxu.notedown.models.data.Note
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -21,8 +20,31 @@ import java.util.regex.Pattern
 
 class EditorViewModel : ViewModel() {
     companion object {
-        // Markdown图片语法正则表达式: ![alt](src)
-        private val IMAGE_PATTERN = Pattern.compile("!\\[(.*?)]\\((.*?)\\)")
+        // Markdown 图片语法正则表达式: ![alt](src)
+        private val IMAGE_PATTERN = Pattern.compile(
+            "!\\[((?:[^]\\\\]|\\\\.)*)]\\(((?:[^)\\\\]|\\\\.)*)\\)"
+        )
+
+        private fun escapeMarkdownSpecialChars(input: String): String {
+            // 需要转义的字符：\ [ ] ( )
+            return input
+                .replace("\\", "\\\\")  // 反斜杠优先转义
+                .replace("[", "\\[")
+                .replace("]", "\\]")
+                .replace("(", "\\(")
+                .replace(")", "\\)")
+        }
+
+        private fun unescapeMarkdownSpecialChars(input: String): String {
+            // 反转义：将转义序列还原
+            // 注意顺序：先处理双反斜杠，再处理其他
+            return input
+                .replace("\\\\", "\\")  // 两个反斜杠变成一个
+                .replace("\\[", "[")
+                .replace("\\]", "]")
+                .replace("\\(", "(")
+                .replace("\\)", ")")
+        }
     }
 
     private val _blocks = MutableStateFlow<List<Block>>(listOf(Block.RichTextBlock()))
@@ -47,6 +69,7 @@ class EditorViewModel : ViewModel() {
                 val mdFile = File(note.folder, "${note.folder.name}.md")
                 if (mdFile.exists() && mdFile.isFile) {
                     val content = mdFile.readText(Charsets.UTF_8)
+                    Log.d("读取笔记", "文本内容： \n$content")
                     // 解析内容并创建 blocks
                     val parsedBlocks = parseMarkdownContent(content)
                     // 在主线程更新 UI
@@ -84,8 +107,8 @@ class EditorViewModel : ViewModel() {
         while (matcher.find()) {
             val start = matcher.start()
             val end = matcher.end()
-            val alt = matcher.group(1) ?: ""
-            val src = matcher.group(2) ?: ""
+            val alt = unescapeMarkdownSpecialChars(matcher.group(1) ?: "")
+            val src = unescapeMarkdownSpecialChars(matcher.group(2) ?: "")
 
             // 添加图片前面的文本块
             if (start > lastIndex) {
@@ -138,7 +161,9 @@ class EditorViewModel : ViewModel() {
                     }
 
                     is Block.ImageBlock -> {
-                        content.append("\n\n![${block.alt}](${block.src})\n\n")
+                        val escapedSrc = escapeMarkdownSpecialChars(block.src)
+                        val escapedAlt = escapeMarkdownSpecialChars(block.alt)
+                        content.append("\n\n![${escapedAlt}](${escapedSrc})\n\n")
                     }
                 }
                 val isLastBlock = index == _blocks.value.lastIndex
