@@ -30,18 +30,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -50,7 +46,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -60,8 +55,10 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.dynastxu.notedown.R
 import com.dynastxu.notedown.models.data.Block
+import com.dynastxu.notedown.models.data.Note
 import com.dynastxu.notedown.models.view.EditorViewModel
 import com.dynastxu.notedown.models.view.MainViewModel
+import com.dynastxu.notedown.views.Loading
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 
@@ -74,28 +71,36 @@ fun EditScreen(
     val blocks by viewModel.blocks.collectAsState()
     val focusedIndex by viewModel.focusedIndex.collectAsState()
     val isEditing by viewModel.isEditing.collectAsState()
-    val currentFolder by mainViewModel.currentFolder.collectAsState()
     val note by mainViewModel.selectedNote.collectAsState()
     val listState = rememberLazyListState()
+    val noteReady by viewModel.noteReady.collectAsState()
+
+    if (note == null) {
+        // TODO 显示错误页面
+        return
+    }
+
+    LaunchedEffect(note) {
+        viewModel.readNote(note!!)
+    }
+
+    if (!noteReady) {
+        Loading(
+            modifier = Modifier.fillMaxSize()
+        )
+        return
+    }
 
     mainViewModel.onEditBtnPressed = {
         val isEditing = mainViewModel.isEditing.value
         viewModel.setIsEditing(isEditing)
         if (!isEditing) {
-            viewModel.save()
+            viewModel.save(note!!)
         }
     }
 
     LaunchedEffect(Unit) {
-        if (note == "") {
-            // 新建笔记时的操作
-            viewModel.createNote(currentFolder!!)
-            mainViewModel.setIsEditing(!isEditing)
-            viewModel.setIsEditing(!isEditing)
-        } else {
-            // 读取笔记时的操作
-            viewModel.readNote(note)
-        }
+        viewModel.setIsEditing(mainViewModel.isEditing.value)
     }
 
     // 自动滚动到焦点块
@@ -103,17 +108,10 @@ fun EditScreen(
         listState.animateScrollToItem(focusedIndex)
     }
 
-    // 使用 State 来存储获取到的高度（像素值）
-    var heightInPx by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
     // 转换为 DP
-    val heightInDp = remember(heightInPx) { density.run { heightInPx.toDp() } }
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .onSizeChanged { size: IntSize -> // 在回调中获取尺寸
-                heightInPx = size.height
-            }
     ) {
         LazyColumn(
             state = listState,
@@ -128,7 +126,6 @@ fun EditScreen(
                     isFocused = index == focusedIndex,
                     onFocus = { viewModel.setFocusedIndex(index) },
                     readOnly = !isEditing,
-//                    modifier = if (isLastItem) Modifier.heightIn(heightInDp * 0.6f) else Modifier,
                     onImageClick = {
                         mainViewModel.setSelectedImage(it.src)
                         // TODO 导航到图片查看页面
@@ -145,14 +142,15 @@ fun EditScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .imePadding(),
-                viewModel = viewModel
+                viewModel = viewModel,
+                note = note!!
             )
         }
     }
 }
 
 @Composable
-fun EditToolBar(block: Block, modifier: Modifier = Modifier, viewModel: EditorViewModel) {
+fun EditToolBar(block: Block, modifier: Modifier = Modifier, viewModel: EditorViewModel, note: Note) {
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -173,8 +171,19 @@ fun EditToolBar(block: Block, modifier: Modifier = Modifier, viewModel: EditorVi
                     val photoPickerLauncher = rememberLauncherForActivityResult(
                         contract = ActivityResultContracts.PickMultipleVisualMedia(),
                         onResult = { uris ->
-                            // 直接把 URI 列表传给 ViewModel 处理
-                            viewModel.onImagesSelected(uris, context)
+                            // 获取完整的带格式内容
+                            val fullMarkdown = block.state!!.toMarkdown()
+                            val selection = block.state!!.selection
+
+                            // 传递完整信息给 ViewModel 处理
+                            viewModel.onImagesSelected(
+                                uris = uris,
+                                context = context,
+                                fullContent = fullMarkdown,
+                                selectionStart = selection.min,
+                                selectionEnd = selection.max,
+                                note = note
+                            )
                         }
                     )
                     @Composable
@@ -297,8 +306,10 @@ fun TextBlock(
     val state = rememberRichTextState()
 
     LaunchedEffect(Unit) {
-        state.setMarkdown(block.text)
-        // state.setMarkdown("""# 111""") // test. toHtml: <p><span style="font-size: 2.0em;"><b>111</b></span></p>
+        // 设置初始文本
+        if (block.initialText.isNotEmpty()) {
+            state.setMarkdown(block.initialText)
+        }
         block.state = state
     }
 

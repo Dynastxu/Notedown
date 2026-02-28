@@ -59,7 +59,7 @@ fun AppDrawerContent(
             label = { Text(stringResource(R.string.label_add_note)) },
             selected = false,
             onClick = {
-                viewModel.selectNote()
+                viewModel.createNewNote()
                 navController.navigate(Route.EDIT)
                 scope.launch { drawerState.close() }
             },

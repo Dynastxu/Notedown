@@ -4,20 +4,24 @@ import android.app.Application
 import android.os.Environment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.dynastxu.notedown.models.data.Note
+import com.dynastxu.notedown.models.data.NoteConfig
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.LocalDate
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     // 用于通知 UI 文件夹是否准备就绪
     private val _folderReady = MutableStateFlow<File?>(null)
     val folderReady: StateFlow<File?> = _folderReady
 
-    private val _selectedNote = MutableStateFlow("")
-    val selectedNote: StateFlow<String> = _selectedNote
+    private val _selectedNote = MutableStateFlow<Note?>(null)
+    val selectedNote: StateFlow<Note?> = _selectedNote
 
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing
@@ -54,8 +58,47 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _isEditing.value = isEditing
     }
 
-    fun selectNote(note: String = "") {
+    fun selectNote(note: Note) {
         _selectedNote.value = note
+    }
+
+    fun createNewNote() {
+        _selectedNote.value = createNewNote(_currentFolder.value!!)
+        _isEditing.value = true
+    }
+
+    private fun createNewNote(folder: File): Note {
+        val noteFolder = createUniqueFolder(folder, LocalDate.now().toString())
+        val config = NoteConfig()
+        if (noteFolder.mkdirs()) {
+            File(noteFolder, "imgs").mkdirs()
+            File(noteFolder, "${noteFolder.name}.md").createNewFile()
+            val configFile = File(noteFolder, "config.js")
+            if (configFile.createNewFile()) {
+                // 将配置写入文件
+                configFile.writeText(Gson().toJson(config))
+            }
+        }
+        return Note(noteFolder, config)
+    }
+
+    /**
+     * 创建唯一名称的文件夹，如果已存在则添加数字后缀
+     *
+     * @param parent 父文件夹
+     * @param baseName 基础名称
+     * @return 新的文件夹对象
+     */
+    private fun createUniqueFolder(parent: File, baseName: String): File {
+        var counter = 1
+        var newName = baseName
+        var newFolder = File(parent, newName)
+        while (newFolder.exists()) {
+            newName = "${baseName}(${counter})"
+            newFolder = File(parent, newName)
+            counter++
+        }
+        return newFolder
     }
 
     private fun createNotedownFolder() {

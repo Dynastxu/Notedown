@@ -42,14 +42,6 @@ class HomeViewModel : ViewModel() {
         _selections.value = newList
     }
 
-    fun onChooseNote(note: Note) {
-        // TODO
-    }
-
-    fun onChooseFolder(folder: Folder) {
-        // TODO
-    }
-
     fun onDelete() {
         _selections.value.forEach { index ->
             if (index >= _currentFoldersList.value.size) {

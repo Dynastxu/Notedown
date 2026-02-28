@@ -6,12 +6,12 @@ sealed class Block {
     /**
      * 文本块
      *
-     * @param text 文本内容
-     * @param isReadOnly 是否只读
+     * @param state 文本内容
+     * @param initialText 初始文本参数
      */
     data class RichTextBlock(
-        var text: String = "",
-        var state: RichTextState? = null
+        var state: RichTextState? = null,
+        val initialText: String = ""
     ) : Block()
 
     data class ImageBlock(

@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +38,7 @@ import com.dynastxu.notedown.models.data.Note
 import com.dynastxu.notedown.models.data.Route
 import com.dynastxu.notedown.models.view.HomeViewModel
 import com.dynastxu.notedown.models.view.MainViewModel
+import com.dynastxu.notedown.views.Loading
 import java.io.File
 
 /**
@@ -64,15 +64,7 @@ fun HomeScreen(
     when (folderReady) {
         null -> {
             // 文件夹未准备好，显示加载状态
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            Loading()
         }
 
         else -> {
@@ -95,8 +87,8 @@ fun HomeScreen(
                         Text(stringResource(R.string.no_note))
                         Spacer(Modifier.height(8.dp))
                         Button(onClick = {
+                            mainViewModel.createNewNote()
                             navController.navigate(Route.EDIT)
-                            mainViewModel.selectNote()
                         }) { Text(stringResource(R.string.btn_add_note)) }
                     }
                 } else {
@@ -109,7 +101,8 @@ fun HomeScreen(
                                 viewModel.setSelectMode(true)
                             }
                             viewModel.select(index)
-                        }
+                        },
+                        mainViewModel = mainViewModel
                     )
                 }
             }
@@ -122,6 +115,7 @@ fun NotesList(
     navController: NavController,
     currentFolder: File,
     viewModel: HomeViewModel,
+    mainViewModel: MainViewModel,
     modifier: Modifier = Modifier,
     onLongClick: (Int) -> Unit
 ) {
@@ -147,7 +141,7 @@ fun NotesList(
                         if (selectMode) {
                             viewModel.select(index)
                         } else {
-                            viewModel.onChooseFolder(folders[index])
+                            // TODO
                         }
                     },
                     selected = selections.contains(index)
@@ -160,9 +154,11 @@ fun NotesList(
                     onLongClick = { onLongClick(actualIndex) },
                     onClick = {
                         if (selectMode) {
+                            // 多选模式
                             viewModel.select(actualIndex)
                         } else {
-                            viewModel.onChooseNote(notes[index])
+                            mainViewModel.selectNote(notes[index])
+                            navController.navigate(Route.EDIT)
                         }
                     },
                     selected = selections.contains(actualIndex)
