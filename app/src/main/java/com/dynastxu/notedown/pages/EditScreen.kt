@@ -6,8 +6,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,14 +31,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -108,7 +105,6 @@ fun EditScreen(
 //        listState.animateScrollToItem(focusedIndex)
 //    }
 
-    // 转换为 DP
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -292,7 +288,7 @@ fun BlockItem(
                 block = block,
                 readOnly = readOnly,
                 isLastBlock = isLastBlock,
-                onTextLayout = { onNeedFocus() }
+                onNeedFocus = onNeedFocus
             )
 
             is Block.ImageBlock -> ImageBlock(
@@ -301,31 +297,6 @@ fun BlockItem(
                 onLongClick = {}, // TODO
             )
         }
-
-        // 父组件拦截层（透明，覆盖子组件）
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .pointerInput(Unit) {
-                    awaitEachGesture {
-                        // 等待按下事件（此时事件尚未被消费）
-                        val down = awaitFirstDown(requireUnconsumed = false)
-
-                        // 等待抬起事件，确认是一次点击
-                        val upEvent = awaitPointerEvent()
-                        if (upEvent.type == PointerEventType.Release) {
-                            val up = upEvent.changes.first()
-                            // 可选：检查移动距离，防止滑动误触
-                            val distance = (up.position - down.position).getDistance()
-                            if (distance < 10.dp.toPx()) {
-                                // 执行父组件逻辑
-                                onNeedFocus()
-                            }
-                        }
-                        // 注意：没有调用任何 consume 方法，事件将继续传递
-                    }
-                }
-        )
     }
 }
 
@@ -334,7 +305,7 @@ fun TextBlock(
     block: Block.RichTextBlock,
     readOnly: Boolean,
     isLastBlock: Boolean = false,
-    onTextLayout: (TextLayoutResult) -> Unit
+    onNeedFocus: () -> Unit
 ) {
     var state = rememberRichTextState()
 
@@ -351,7 +322,9 @@ fun TextBlock(
         readOnly = readOnly,
         modifier = Modifier
             .fillMaxSize()
-            .padding(8.dp),
+            .padding(8.dp)
+            .focusable()
+            .onFocusChanged {if (it.isFocused) onNeedFocus()},
         textStyle = TextStyle(
             fontSize = 16.sp
         ),
@@ -359,7 +332,6 @@ fun TextBlock(
             Log.d("文本内容", "markdown: ${state.toMarkdown()}")
             Log.d("文本内容", "html: ${state.toHtml()}")
             block.state = state
-            onTextLayout(it)
         },
         minLines = if (isLastBlock) 32 else 1
     )
