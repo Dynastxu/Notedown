@@ -115,7 +115,7 @@ class EditorViewModel : ViewModel() {
                 // 如果有
                 val textBeforeImage = content.substring(lastIndex, start)
                 if (textBeforeImage.isNotBlank()) {
-                    val textBlock = Block.RichTextBlock(initialText = textBeforeImage)
+                    val textBlock = Block.RichTextBlock(initialText = textBeforeImage.dropLast(2)) // 去除最后两个换号符
                     // 这里需要在 Compose 环境中创建 RichTextState
                     blocks.add(textBlock)
                 }
@@ -165,10 +165,6 @@ class EditorViewModel : ViewModel() {
                         val escapedAlt = escapeMarkdownSpecialChars(block.alt)
                         content.append("\n\n![${escapedAlt}](${escapedSrc})\n\n")
                     }
-                }
-                val isLastBlock = index == _blocks.value.lastIndex
-                if (!isLastBlock) {
-                    content.append("\n\n")
                 }
             }
             try {
