@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.richeditor.compose)
     implementation(libs.coil.compose)
     implementation(libs.gson)
+    implementation(libs.zoomable)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

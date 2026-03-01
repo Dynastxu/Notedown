@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.Environment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.dynastxu.notedown.models.data.ImageData
 import com.dynastxu.notedown.models.data.Note
 import com.dynastxu.notedown.models.data.NoteConfig
 import com.google.gson.Gson
@@ -26,8 +27,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing
 
-    private val _selectedImage = MutableStateFlow("")
-    val selectedImage: StateFlow<String> = _selectedImage
+    private val _selectedImage = MutableStateFlow<ImageData?>(null)
+    val selectedImage: StateFlow<ImageData?> = _selectedImage
 
     private val _currentFolder = MutableStateFlow<File?>(null)
     val currentFolder: StateFlow<File?> = _currentFolder
@@ -42,8 +43,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         createNotedownFolder()
     }
 
-    fun setSelectedImage(src: String) {
-        _selectedImage.value = src
+    fun setSelectedImage(image: ImageData) {
+        _selectedImage.value = image
     }
 
     /**

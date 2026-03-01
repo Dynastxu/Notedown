@@ -30,4 +30,5 @@
     <string name="icon_desc_move">Move</string>
     <string name="icon_desc_export">Export</string>
     <string name="icon_desc_cancel">Cancel</string>
+    <string name="title_image">Image</string>
 </resources>

@@ -51,7 +51,9 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.dynastxu.notedown.R
 import com.dynastxu.notedown.models.data.Block
+import com.dynastxu.notedown.models.data.ImageData
 import com.dynastxu.notedown.models.data.Note
+import com.dynastxu.notedown.models.data.Route
 import com.dynastxu.notedown.models.view.EditorViewModel
 import com.dynastxu.notedown.models.view.MainViewModel
 import com.dynastxu.notedown.views.Loading
@@ -122,8 +124,8 @@ fun EditScreen(
                     block = block,
                     readOnly = !isEditing,
                     onImageClick = {
-                        mainViewModel.setSelectedImage(it.src)
-                        // TODO 导航到图片查看页面
+                        mainViewModel.setSelectedImage(it)
+                        navController.navigate(Route.IMAGE)
                     },
                     isLastBlock = isLastItem,
                     onNeedFocus = {
@@ -275,7 +277,7 @@ fun BlockItem(
     block: Block,
     modifier: Modifier = Modifier,
     readOnly: Boolean = false,
-    onImageClick: (Block.ImageBlock) -> Unit = {},
+    onImageClick: (ImageData) -> Unit = {},
     isLastBlock: Boolean = false,
     onNeedFocus: () -> Unit = {}
 ) {
@@ -292,7 +294,7 @@ fun BlockItem(
 
             is Block.ImageBlock -> ImageBlock(
                 block = block,
-                onClick = { onImageClick(it) },
+                onClick = { onImageClick(it.image) },
                 onLongClick = {}, // TODO
             )
         }
@@ -345,10 +347,10 @@ fun ImageBlock(
     // 使用 Coil 的 AsyncImage 统一处理所有图片源
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
-            .data(block.src)
+            .data(block.image.src)
             .crossfade(true)
             .build(),
-        contentDescription = block.alt,
+        contentDescription = block.image.alt,
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -359,7 +361,7 @@ fun ImageBlock(
         error = painterResource(R.drawable.outline_broken_image_24),
         onError = {
             Log.e("图片加载", "图片加载失败")
-            Log.e("图片加载", "路径： ${block.src}")
+            Log.e("图片加载", "路径： ${block.image.src}")
         }
     )
 }

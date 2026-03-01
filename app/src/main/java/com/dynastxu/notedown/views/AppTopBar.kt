@@ -42,6 +42,7 @@ fun AppTopBar(
         Route.HOME -> stringResource(R.string.title_home)
         Route.SETTINGS -> stringResource(R.string.title_settings)
         Route.EDIT -> stringResource(R.string.title_edit)
+        Route.IMAGE -> stringResource(R.string.title_image)
         else -> stringResource(R.string.app_name)
     }
 

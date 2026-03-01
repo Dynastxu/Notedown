@@ -23,6 +23,7 @@ import com.dynastxu.notedown.models.data.Route
 import com.dynastxu.notedown.models.view.MainViewModel
 import com.dynastxu.notedown.pages.EditScreen
 import com.dynastxu.notedown.pages.HomeScreen
+import com.dynastxu.notedown.pages.ImageScreen
 import com.dynastxu.notedown.pages.SettingsScreen
 import com.dynastxu.notedown.ui.theme.NotedownTheme
 import com.dynastxu.notedown.views.AppDrawerContent
@@ -60,12 +61,14 @@ class MainActivity : ComponentActivity() {
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         topBar = {
-                            AppTopBar(
-                                navController,
-                                drawerState,
-                                scope,
-                                viewModel
-                            )
+                            if (currentRoute != Route.IMAGE) {
+                                AppTopBar(
+                                    navController,
+                                    drawerState,
+                                    scope,
+                                    viewModel
+                                )
+                            }
                         }  // 顶部栏随页面变化
                     ) { innerPadding ->
                         // 导航图放在 Scaffold 内容区，使用 innerPadding 避免被状态栏遮挡
@@ -77,6 +80,7 @@ class MainActivity : ComponentActivity() {
                             composable(Route.HOME) { HomeScreen(navController, viewModel) }
                             composable(Route.SETTINGS) { SettingsScreen(navController) }
                             composable(Route.EDIT) { EditScreen(navController, viewModel) }
+                            composable(Route.IMAGE) { ImageScreen(navController, viewModel) }
                         }
                     }
                 }

@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dynastxu.notedown.models.data.Block
+import com.dynastxu.notedown.models.data.ImageData
 import com.dynastxu.notedown.models.data.Note
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -126,7 +127,7 @@ class EditorViewModel : ViewModel() {
             }
 
             // 添加图片块
-            blocks.add(Block.ImageBlock(src = src, alt = alt))
+            blocks.add(Block.ImageBlock(image = ImageData(src, alt)))
 
             lastIndex = end
         }
@@ -161,8 +162,8 @@ class EditorViewModel : ViewModel() {
                     }
 
                     is Block.ImageBlock -> {
-                        val escapedSrc = escapeMarkdownSpecialChars(block.src)
-                        val escapedAlt = escapeMarkdownSpecialChars(block.alt)
+                        val escapedSrc = escapeMarkdownSpecialChars(block.image.src)
+                        val escapedAlt = escapeMarkdownSpecialChars(block.image.alt)
                         content.append("\n\n![${escapedAlt}](${escapedSrc})\n\n")
                     }
                 }
@@ -306,7 +307,7 @@ class EditorViewModel : ViewModel() {
         val newBlocks = mutableListOf<Block>()
         newBlocks.add(leftBlock)
         paths.forEachIndexed { index, path ->
-            newBlocks.add(Block.ImageBlock(src = path))
+            newBlocks.add(Block.ImageBlock(image = ImageData(path)))
             if (index != paths.lastIndex) {
                 newBlocks.add(Block.RichTextBlock())
             }

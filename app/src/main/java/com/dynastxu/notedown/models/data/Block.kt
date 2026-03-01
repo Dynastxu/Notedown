@@ -15,7 +15,6 @@ sealed class Block {
     ) : Block()
 
     data class ImageBlock(
-        var src: String = "",
-        var alt: String = ""
+        var image: ImageData = ImageData("")
     ) : Block()
 }
