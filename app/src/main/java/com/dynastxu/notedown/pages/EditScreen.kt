@@ -118,8 +118,9 @@ fun EditScreen(
         ) {
             itemsIndexed(blocks) { index, block ->
                 val isLastItem = index == viewModel.blocks.collectAsState().value.size - 1
+                val isFocused = index == focusedIndex
                 val borderColor =
-                    if (index == focusedIndex) MaterialTheme.colorScheme.primary else Color.Transparent
+                    if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent
                 BlockItem(
                     block = block,
                     readOnly = !isEditing,
@@ -132,7 +133,8 @@ fun EditScreen(
                         viewModel.setFocusedIndex(index)
                     },
                     modifier = Modifier
-                        .border(Dp.Hairline, borderColor, MaterialTheme.shapes.small)
+                        .border(Dp.Hairline, borderColor, MaterialTheme.shapes.small),
+                    isFocused = isFocused
                 )
             }
         }
@@ -166,8 +168,10 @@ fun EditToolBar(
         Row(
             modifier = Modifier.fillMaxWidth()
         ) {
-            if (block is Block.RichTextBlock) {
-                if (block.state != null) {
+            when (block) {
+                is Block.RichTextBlock -> {
+                    if (block.state == null) return@Row
+
                     val isBold =
                         block.state!!.currentSpanStyle.fontWeight == FontWeight.Bold
                     val isItalic =
@@ -258,6 +262,19 @@ fun EditToolBar(
                         )
                     }
                 }
+
+                is Block.ImageBlock -> {
+                    IconButton(
+                        onClick = {
+                            // TODO
+                        }
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.outline_delete_24),
+                            stringResource(R.string.icon_desc_delete)
+                        )
+                    }
+                }
             }
         }
     }
@@ -271,6 +288,7 @@ fun EditToolBar(
  * @param onImageClick 图片点击事件
  * @param onNeedFocus 需要焦点事件
  * @param isLastBlock 属于最后一个块
+ * @param isFocused 是否被聚焦
  */
 @Composable
 fun BlockItem(
@@ -279,7 +297,8 @@ fun BlockItem(
     readOnly: Boolean = false,
     onImageClick: (ImageData) -> Unit = {},
     isLastBlock: Boolean = false,
-    onNeedFocus: () -> Unit = {}
+    onNeedFocus: () -> Unit = {},
+    isFocused: Boolean = false
 ) {
     Box(
         modifier = modifier
@@ -294,7 +313,13 @@ fun BlockItem(
 
             is Block.ImageBlock -> ImageBlock(
                 block = block,
-                onClick = { onImageClick(it.image) },
+                onClick = {
+                    if (isFocused) {
+                        onImageClick(it.image)
+                    } else {
+                        onNeedFocus()
+                    }
+                },
                 onLongClick = {}, // TODO
             )
         }
@@ -325,7 +350,7 @@ fun TextBlock(
             .fillMaxSize()
             .padding(8.dp)
             .focusable()
-            .onFocusChanged {if (it.isFocused) onNeedFocus()},
+            .onFocusChanged { if (it.isFocused) onNeedFocus() },
         textStyle = TextStyle(
             fontSize = 16.sp
         ),
