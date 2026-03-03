@@ -266,7 +266,7 @@ fun EditToolBar(
                 is Block.ImageBlock -> {
                     IconButton(
                         onClick = {
-                            // TODO
+                            viewModel.removeFocusedBlock()
                         }
                     ) {
                         Icon(

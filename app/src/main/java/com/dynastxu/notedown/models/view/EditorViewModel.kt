@@ -11,7 +11,6 @@ import com.dynastxu.notedown.models.data.Note
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -186,30 +185,42 @@ class EditorViewModel : ViewModel() {
         _isEditing.value = isEditing
     }
 
-    fun addBlockAfter(index: Int, block: Block) {
-        _blocks.update { list ->
-            list.toMutableList().apply { add(index + 1, block) }
-        }
+    fun removeFocusedBlock() {
+        removeBlockAt(_focusedIndex.value)
     }
 
     fun removeBlockAt(index: Int) {
-        _blocks.update { list ->
-            if (list.size > 1) {
-                list.toMutableList().apply { removeAt(index) }
-            } else list
-        }
-        // 焦点调整
-        if (index <= _focusedIndex.value && _focusedIndex.value > 0) {
-            _focusedIndex.value -= 1
-        }
-    }
+        val block = _blocks.value[index]
+        when (block) {
+            is Block.RichTextBlock -> {}
+            is Block.ImageBlock -> {
+                val blocks = _blocks.value.toMutableList()
 
-    fun updateTextBlock(index: Int, update: Block.RichTextBlock.() -> Unit) {
-        _blocks.update { list ->
-            list.mapIndexed { i, block ->
-                if (i == index && block is Block.RichTextBlock) {
-                    block.apply(update)
-                } else block
+                // 获取前后相邻的文本块（需要安全转换类型）
+                val prevBlock = if (index > 0) blocks[index - 1] as? Block.RichTextBlock else null
+                val nextBlock = if (index < blocks.lastIndex) blocks[index + 1] as? Block.RichTextBlock else null
+
+                if (prevBlock == null || nextBlock == null) {
+                    Log.e("删除块", "图片：相邻的文本块不存在")
+                    return
+                }
+
+                // 合并文本内容
+                val mergedText = buildString {
+                    prevBlock.state?.toMarkdown()?.let { append(it) }
+                    append("\n")
+                    nextBlock.state?.toMarkdown()?.let { append(it) }
+                }
+
+                // 创建合并后的新文本块
+                val mergedBlock = Block.RichTextBlock(initialText = mergedText)
+
+                blocks.removeAt(index + 1)
+                blocks.removeAt(index)
+                blocks[index - 1] = mergedBlock
+
+                _blocks.value = blocks
+                _focusedIndex.value = index - 1
             }
         }
     }
@@ -217,14 +228,6 @@ class EditorViewModel : ViewModel() {
     fun setFocusedIndex(index: Int) {
         _focusedIndex.value = index.coerceIn(0, _blocks.value.lastIndex)
         Log.d("UI", "聚焦索引： $index")
-    }
-
-    fun moveFocusUp() {
-        if (_focusedIndex.value > 0) _focusedIndex.value -= 1
-    }
-
-    fun moveFocusDown() {
-        if (_focusedIndex.value < _blocks.value.lastIndex) _focusedIndex.value += 1
     }
 
     /**
