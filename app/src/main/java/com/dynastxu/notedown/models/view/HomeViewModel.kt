@@ -1,5 +1,6 @@
 package com.dynastxu.notedown.models.view
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dynastxu.notedown.models.data.Folder
@@ -40,6 +41,7 @@ class HomeViewModel : ViewModel() {
             newList.add(index)
         }
         _selections.value = newList
+        Log.d("用户选择", newList.toString())
     }
 
     fun onDelete() {
@@ -47,17 +49,18 @@ class HomeViewModel : ViewModel() {
             if (index >= _currentFoldersList.value.size) {
                 val newIndex = index - _currentFoldersList.value.size
                 delete(_currentNotesList.value[newIndex])
+                Log.i("用户删除", "删除了笔记 ${_currentNotesList.value[newIndex]}")
             } else {
                 delete(_currentFoldersList.value[index])
+                Log.i("用户删除", "删除了文件夹 ${_currentFoldersList.value[index]}")
             }
         }
         _selections.value = emptyList()
     }
 
     private fun delete(note: Note) {
-        viewModelScope.launch(Dispatchers.IO) {
-            deleteRecursively(note.folder)
-        }
+        // TODO 这里为确保 UI 正确刷新取消了异步执行，之后需要换成显示删除进度，完成后刷新 UI
+        deleteRecursively(note.folder)
     }
 
     private fun delete(folder: Folder) {
