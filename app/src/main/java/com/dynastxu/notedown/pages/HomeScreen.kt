@@ -30,17 +30,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.dynastxu.notedown.R
 import com.dynastxu.notedown.models.data.Folder
 import com.dynastxu.notedown.models.data.Note
+import com.dynastxu.notedown.models.data.NoteConfig
 import com.dynastxu.notedown.models.data.Route
 import com.dynastxu.notedown.models.view.HomeViewModel
 import com.dynastxu.notedown.models.view.MainViewModel
 import com.dynastxu.notedown.views.Loading
 import java.io.File
+import java.util.Date
 
 /**
  * 主页 Composable
@@ -358,7 +361,7 @@ fun NoteItem(
             ) {
                 // 加粗的笔记标题
                 Text(
-                    text = note.config.title.ifEmpty { note.folder.name },
+                    text = note.config.title.ifBlank { note.folder.name },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -391,4 +394,15 @@ fun NoteItem(
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun PNoteItem() {
+    NoteItem(
+        Note(File(""), NoteConfig(
+            title = "Title",
+            editDate = Date()
+        ))
+    )
 }

@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.dynastxu.notedown.models.data.Block
 import com.dynastxu.notedown.models.data.ImageData
 import com.dynastxu.notedown.models.data.Note
+import com.dynastxu.notedown.models.data.NoteConfig
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Date
 import java.util.UUID
 import java.util.regex.Pattern
 
@@ -59,6 +62,15 @@ class EditorViewModel : ViewModel() {
     private val _noteReady = MutableStateFlow(false)
     val noteReady: StateFlow<Boolean> = _noteReady
 
+    private val _title = MutableStateFlow("")
+    val title: StateFlow<String> = _title
+
+    private val gson = Gson()
+
+    fun setTitle(title: String) {
+        _title.value = title
+    }
+
     fun readNote(note: Note) {
         viewModelScope.launch(Dispatchers.IO) {
             Log.i("读取笔记", "正在读取")
@@ -72,12 +84,32 @@ class EditorViewModel : ViewModel() {
                     Log.d("读取笔记", "文本内容： \n$content")
                     // 解析内容并创建 blocks
                     val parsedBlocks = parseMarkdownContent(content)
+
+                    // 读取并更新配置文件
+                    val configFile = File(note.folder, "config.js")
+                    val config = if (configFile.exists() && configFile.isFile) {
+                        val configContent = configFile.readText()
+                        val noteConfig = gson.fromJson(configContent, NoteConfig::class.java)
+                        // 更新读取时间
+                        noteConfig.copy(readDate = Date()).also { updatedConfig ->
+                            configFile.writeText(gson.toJson(updatedConfig))
+                        }
+                    } else {
+                        // 如果配置文件不存在，创建新的配置
+                        NoteConfig(readDate = Date()).also { newConfig ->
+                            if (configFile.createNewFile()) {
+                                configFile.writeText(gson.toJson(newConfig))
+                            }
+                        }
+                    }
+                    note.config.update(config)
+
                     // 在主线程更新 UI
                     withContext(Dispatchers.Main) {
                         _blocks.value = parsedBlocks
                     }
                 } else {
-                    // 文件不存在，创建默认的文本块
+                    // TODO 改为显示文件不存在
                     withContext(Dispatchers.Main) {
                         _blocks.value = listOf(Block.RichTextBlock())
                     }
@@ -171,6 +203,15 @@ class EditorViewModel : ViewModel() {
                 val file = File(note.folder, "${note.folder.name}.md")
                 // 使用 writeText 会自动创建文件，无需先调用 createNewFile()
                 file.writeText(content.toString())
+
+                // 更新并保存配置文件
+                val configFile = File(note.folder, "config.js")
+                note.config.editDate = Date()
+                note.config.title = _title.value
+                if (configFile.exists() || configFile.createNewFile()) {
+                    configFile.writeText(gson.toJson(note.config))
+                }
+
                 Log.i("保存笔记", "保存成功")
             } catch (e: Exception) {
                 // 捕获并记录具体异常信息

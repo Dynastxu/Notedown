@@ -31,4 +31,5 @@
     <string name="icon_desc_export">导出</string>
     <string name="icon_desc_cancel">取消</string>
     <string name="title_image">图片</string>
+    <string name="title">标题</string>
 </resources>

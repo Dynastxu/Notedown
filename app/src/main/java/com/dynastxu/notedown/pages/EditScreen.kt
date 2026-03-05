@@ -25,6 +25,9 @@ import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -72,6 +75,7 @@ fun EditScreen(
     val note by mainViewModel.selectedNote.collectAsState()
     val listState = rememberLazyListState()
     val noteReady by viewModel.noteReady.collectAsState()
+    val title by viewModel.title.collectAsState()
 
     if (note == null) {
         // TODO 显示错误页面
@@ -99,6 +103,7 @@ fun EditScreen(
 
     LaunchedEffect(Unit) {
         viewModel.setIsEditing(mainViewModel.isEditing.value)
+        viewModel.setTitle(note?.config?.title ?: "")
     }
 
     // 自动滚动到焦点块
@@ -116,6 +121,25 @@ fun EditScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            item {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = {
+                        viewModel.setTitle(it)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = TextStyle(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    readOnly = !isEditing,
+                    placeholder = {
+                        Text(
+                            stringResource(R.string.title)
+                        )
+                    }
+                )
+            }
             itemsIndexed(blocks) { index, block ->
                 val isLastItem = index == viewModel.blocks.collectAsState().value.size - 1
                 val isFocused = index == focusedIndex

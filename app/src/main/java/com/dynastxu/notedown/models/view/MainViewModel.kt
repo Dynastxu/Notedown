@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.LocalDate
+import java.util.Date
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     // 用于通知 UI 文件夹是否准备就绪
@@ -70,7 +71,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun createNewNote(folder: File): Note {
         val noteFolder = createUniqueFolder(folder, LocalDate.now().toString())
-        val config = NoteConfig()
+        val config = NoteConfig(
+            createDate = Date()
+        )
         if (noteFolder.mkdirs()) {
             File(noteFolder, "imgs").mkdirs()
             File(noteFolder, "${noteFolder.name}.md").createNewFile()
