@@ -18,7 +18,7 @@
     <string name="title_edit">Edit</string>
     <string name="icon_desc_done">Done</string>
     <string name="icon_desc_edit">Edit</string>
-    <string name="btn_add_note">Add Note</string>
+    <string name="btn_add_note">New Note</string>
     <string name="icon_desc_bold">Bold</string>
     <string name="icon_desc_italic">Italic</string>
     <string name="icon_desc_strikethrough">Strikethrough</string>
@@ -32,4 +32,9 @@
     <string name="icon_desc_cancel">Cancel</string>
     <string name="title_image">Image</string>
     <string name="title">Title</string>
+    <string name="label_creat_new_folder">New Folder</string>
+    <string name="label_folder_name">Folder Name</string>
+    <string name="confirm">Confirm</string>
+    <string name="cancel">Cancel</string>
+    <string name="unnamed_name">Unnamed</string>
 </resources>

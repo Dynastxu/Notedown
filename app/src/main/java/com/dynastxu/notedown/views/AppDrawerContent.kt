@@ -34,7 +34,8 @@ fun AppDrawerContent(
     navController: NavHostController,
     drawerState: DrawerState,
     scope: CoroutineScope,
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    onNewFolderClick: () -> Unit = {}
 ) {
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
@@ -62,6 +63,16 @@ fun AppDrawerContent(
             },
             icon = { Icon(painterResource(R.drawable.outline_add_notes_24), stringResource(R.string.label_add_note)) }
         )
+        // 添加文件夹
+        NavigationDrawerItem(
+            label = { Text(stringResource(R.string.label_creat_new_folder)) },
+            selected = false,
+            onClick = {
+                onNewFolderClick()
+            },
+            icon = { Icon(painterResource(R.drawable.outline_create_new_folder_24), stringResource(R.string.label_creat_new_folder))}
+        )
+        // 搜索
         NavigationDrawerItem(
             label = { Text(stringResource(R.string.label_search)) },
             selected = false,
@@ -69,6 +80,7 @@ fun AppDrawerContent(
             icon = { Icon(painterResource(R.drawable.outline_search_24), stringResource(R.string.label_search)) }
         )
         HorizontalDivider(thickness = Dp.Hairline)
+        // 设置
         NavigationDrawerItem(
             label = { Text(stringResource(R.string.title_settings)) },
             selected = currentRoute == Route.SETTINGS,

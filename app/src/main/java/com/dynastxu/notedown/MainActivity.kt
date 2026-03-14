@@ -13,14 +13,22 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -34,7 +42,7 @@ import com.dynastxu.notedown.pages.SettingsScreen
 import com.dynastxu.notedown.ui.theme.NotedownTheme
 import com.dynastxu.notedown.views.AppDrawerContent
 import com.dynastxu.notedown.views.AppTopBar
-
+import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
@@ -46,6 +54,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             NotedownTheme {
+                var showFolderDialog by remember { mutableStateOf(false) }
+                var folderName by remember { mutableStateOf("") }
+
                 // 创建导航控制器
                 val navController = rememberNavController()
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -58,7 +69,13 @@ class MainActivity : ComponentActivity() {
                     drawerState = drawerState,
                     drawerContent = {
                         ModalDrawerSheet {
-                            AppDrawerContent(navController, drawerState, scope, viewModel)
+                            AppDrawerContent(
+                                navController = navController,
+                                drawerState = drawerState,
+                                scope = scope,
+                                viewModel = viewModel,
+                                onNewFolderClick = { showFolderDialog = true }
+                            )
                         }
                     },
                     gesturesEnabled = currentRoute == Route.HOME
@@ -69,8 +86,12 @@ class MainActivity : ComponentActivity() {
                         topBar = {
                             AnimatedVisibility(
                                 visible = currentRoute != Route.IMAGE,
-                                enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(300)),
-                                exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(300))
+                                enter = fadeIn(animationSpec = tween(300)) + expandVertically(
+                                    animationSpec = tween(300)
+                                ),
+                                exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(
+                                    animationSpec = tween(300)
+                                )
                             ) {
                                 AppTopBar(
                                     navController,
@@ -92,6 +113,45 @@ class MainActivity : ComponentActivity() {
                             composable(Route.EDIT) { EditScreen(navController, viewModel) }
                             composable(Route.IMAGE) { ImageScreen(navController, viewModel) }
                         }
+                    }
+                    if (showFolderDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showFolderDialog = false },
+                            title = {
+                                Text(stringResource(R.string.label_creat_new_folder))
+                            },
+                            text = {
+                                OutlinedTextField(
+                                    value = folderName,
+                                    onValueChange = { folderName = it },
+                                    label = { Text(stringResource(R.string.label_folder_name)) },
+                                    singleLine = true
+                                )
+                            },
+                            confirmButton = {
+                                val unnamedName = stringResource(R.string.unnamed_name)
+                                TextButton(
+                                    onClick = {
+                                        viewModel.createNewFolder(folderName, unnamedName)
+                                        showFolderDialog = false
+                                        folderName = ""
+                                        scope.launch { drawerState.close() }
+                                    }
+                                ) {
+                                    Text(stringResource(R.string.confirm))
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(
+                                    onClick = {
+                                        showFolderDialog = false
+                                        folderName = ""
+                                    }
+                                ) {
+                                    Text(stringResource(R.string.cancel))
+                                }
+                            }
+                        )
                     }
                 }
             }

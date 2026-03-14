@@ -16,6 +16,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.LocalDate
 import java.util.Date
+import java.util.UUID
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     // 用于通知 UI 文件夹是否准备就绪
@@ -69,14 +70,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _isEditing.value = true
     }
 
+    fun createNewFolder(name: String, unnamedName: String) {
+        // FIXME 页面未能及时刷新
+        uniqueFolder(_currentFolder.value!!, name.ifBlank { unnamedName }).mkdirs()
+    }
+
     private fun createNewNote(folder: File): Note {
-        val noteFolder = createUniqueFolder(folder, LocalDate.now().toString())
+        val noteFolder = uniqueFolder(folder, UUID.randomUUID().toString())
         val config = NoteConfig(
             createDate = Date()
         )
         if (noteFolder.mkdirs()) {
             File(noteFolder, "imgs").mkdirs()
-            File(noteFolder, "${noteFolder.name}.md").createNewFile()
+            File(noteFolder, "${LocalDate.now()}.md").createNewFile()
             val configFile = File(noteFolder, "config.js")
             if (configFile.createNewFile()) {
                 // 将配置写入文件
@@ -93,7 +99,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      * @param baseName 基础名称
      * @return 新的文件夹对象
      */
-    private fun createUniqueFolder(parent: File, baseName: String): File {
+    private fun uniqueFolder(parent: File, baseName: String): File {
         var counter = 1
         var newName = baseName
         var newFolder = File(parent, newName)
@@ -105,6 +111,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return newFolder
     }
 
+    /**
+     * 创建笔记根目录
+     */
     private fun createNotedownFolder() {
         viewModelScope.launch {
             val folder = withContext(Dispatchers.IO) {

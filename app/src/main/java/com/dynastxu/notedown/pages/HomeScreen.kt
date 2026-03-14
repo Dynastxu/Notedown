@@ -384,7 +384,7 @@ fun NoteItem(
                     Text(
                         text = "${stringResource(R.string.text_modified_on)} ${
                             dateFormat.format(
-                                note.config.editDate
+                                note.config.editDate!!
                             )
                         }",
                         style = MaterialTheme.typography.bodySmall,
