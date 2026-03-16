@@ -39,9 +39,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val needHomeRefresh: StateFlow<Boolean> = _needHomeRefresh
 
     /**
-     * 当顶部栏编辑按钮被按下时执行
+     * 顶部栏编辑按钮执行
      */
-    var onEditBtnPressed = {}
+    var onEdit = {}
 
     init {
         // 在 ViewModel 创建时自动开始创建文件夹
@@ -57,11 +57,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * 按下顶部栏编辑按钮
+     * 当顶部栏编辑按钮按下
      */
-    fun pressEditBtn() {
+    fun onPressEditBtn() {
         _isEditing.value = !_isEditing.value
-        onEditBtnPressed()
+        onEdit()
     }
 
     fun setIsEditing(isEditing: Boolean) {

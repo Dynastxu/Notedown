@@ -27,7 +27,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -93,7 +92,7 @@ fun EditScreen(
         return
     }
 
-    mainViewModel.onEditBtnPressed = {
+    mainViewModel.onEdit = {
         val isEditing = mainViewModel.isEditing.value
         viewModel.setIsEditing(isEditing)
         if (!isEditing) {

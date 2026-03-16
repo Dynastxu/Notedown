@@ -73,7 +73,7 @@ fun AppTopBar(
         actions = {
             when (currentRoute) {
                 Route.EDIT -> {
-                    IconButton(onClick = { viewModel.pressEditBtn() }) {
+                    IconButton(onClick = { viewModel.onPressEditBtn() }) {
                         if (isEditing) {
                             Icon(
                                 painterResource(R.drawable.outline_save_24),

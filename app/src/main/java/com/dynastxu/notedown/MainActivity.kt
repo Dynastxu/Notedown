@@ -44,7 +44,6 @@ import com.dynastxu.notedown.views.AppDrawerContent
 import com.dynastxu.notedown.views.AppTopBar
 import kotlinx.coroutines.launch
 
-
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
@@ -114,6 +113,7 @@ class MainActivity : ComponentActivity() {
                             composable(Route.IMAGE) { ImageScreen(navController, viewModel) }
                         }
                     }
+                    // 文件夹添加窗口
                     if (showFolderDialog) {
                         AlertDialog(
                             onDismissRequest = { showFolderDialog = false },
