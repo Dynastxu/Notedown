@@ -1,5 +1,8 @@
 package com.dynastxu.notedown.pages
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -184,11 +187,15 @@ fun NotesList(
             }
         }
 
-        if (selectMode) {
+        AnimatedVisibility(
+            visible = selectMode,
+            enter = slideInVertically(initialOffsetY = { it }),
+            exit = slideOutVertically(targetOffsetY = { it * 2 }),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
             BottomToolBar(
                 viewModel = viewModel,
-                currentFolder = currentFolder,
-                modifier = Modifier.align(Alignment.BottomCenter)
+                currentFolder = currentFolder
             )
         }
     }
