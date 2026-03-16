@@ -45,7 +45,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         // 在 ViewModel 创建时自动开始创建文件夹
-        createNotedownFolder()
+        createNotedownRootFolder()
+    }
+
+    fun setCurrentFolder(folder: File) {
+        _currentFolder.value = folder
     }
 
     fun onHomeRefreshed() {
@@ -121,7 +125,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * 创建笔记根目录
      */
-    private fun createNotedownFolder() {
+    private fun createNotedownRootFolder() {
         viewModelScope.launch {
             val folder = withContext(Dispatchers.IO) {
                 // 在 IO 线程执行文件操作

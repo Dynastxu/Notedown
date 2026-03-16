@@ -1,5 +1,6 @@
 package com.dynastxu.notedown.pages
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -63,7 +64,7 @@ fun HomeScreen(
     val folders by viewModel.currentFoldersList.collectAsState()
     val selectMode by viewModel.selectMode.collectAsState()
 
-    LaunchedEffect(notes, folders, currentFolder) {
+    LaunchedEffect(notes, folders) {
         if (currentFolder == null) return@LaunchedEffect
         viewModel.scanNoteFolders(currentFolder!!)
     }
@@ -101,7 +102,6 @@ fun HomeScreen(
                 } else {
                     NotesList(
                         navController = navController,
-                        currentFolder = currentFolder!!,
                         viewModel = viewModel,
                         onLongClick = { index ->
                             if (!selectMode) {
@@ -120,7 +120,6 @@ fun HomeScreen(
 @Composable
 fun NotesList(
     navController: NavController,
-    currentFolder: File,
     viewModel: HomeViewModel,
     mainViewModel: MainViewModel,
     modifier: Modifier = Modifier,
@@ -131,12 +130,22 @@ fun NotesList(
     val selectMode by viewModel.selectMode.collectAsState()
     val selections by viewModel.selections.collectAsState()
     val needFresh by mainViewModel.needHomeRefresh.collectAsState()
+    val currentFolder by mainViewModel.currentFolder.collectAsState()
+
+    if (currentFolder == null) {
+        Log.e("笔记列表", "当前目录为 null")
+        return
+    }
 
     LaunchedEffect(needFresh) {
         if (needFresh) {
-            viewModel.scanNoteFolders(currentFolder)
+            viewModel.scanNoteFolders(currentFolder!!)
             mainViewModel.onHomeRefreshed()
         }
+    }
+
+    LaunchedEffect(currentFolder) {
+        viewModel.scanNoteFolders(currentFolder!!)
     }
 
     DisposableEffect(Unit) {
@@ -162,7 +171,9 @@ fun NotesList(
                         if (selectMode) {
                             viewModel.select(index)
                         } else {
-                            // TODO
+                            mainViewModel.setCurrentFolder(
+                                folders[index].folder
+                            )
                         }
                     },
                     selected = selections.contains(index)
@@ -195,7 +206,7 @@ fun NotesList(
         ) {
             BottomToolBar(
                 viewModel = viewModel,
-                currentFolder = currentFolder
+                currentFolder = currentFolder!!
             )
         }
     }
