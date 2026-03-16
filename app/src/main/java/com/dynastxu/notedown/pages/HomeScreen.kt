@@ -127,6 +127,14 @@ fun NotesList(
     val folders by viewModel.currentFoldersList.collectAsState()
     val selectMode by viewModel.selectMode.collectAsState()
     val selections by viewModel.selections.collectAsState()
+    val needFresh by mainViewModel.needHomeRefresh.collectAsState()
+
+    LaunchedEffect(needFresh) {
+        if (needFresh) {
+            viewModel.scanNoteFolders(currentFolder)
+            mainViewModel.onHomeRefreshed()
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {

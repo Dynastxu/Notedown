@@ -35,6 +35,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _currentFolder = MutableStateFlow<File?>(null)
     val currentFolder: StateFlow<File?> = _currentFolder
 
+    private val _needHomeRefresh = MutableStateFlow(false)
+    val needHomeRefresh: StateFlow<Boolean> = _needHomeRefresh
+
     /**
      * 当顶部栏编辑按钮被按下时执行
      */
@@ -43,6 +46,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         // 在 ViewModel 创建时自动开始创建文件夹
         createNotedownFolder()
+    }
+
+    fun onHomeRefreshed() {
+        _needHomeRefresh.value = false
     }
 
     fun setSelectedImage(image: ImageData) {
@@ -71,8 +78,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun createNewFolder(name: String, unnamedName: String) {
-        // FIXME 页面未能及时刷新
         uniqueFolder(_currentFolder.value!!, name.ifBlank { unnamedName }).mkdirs()
+        _needHomeRefresh.value = true
     }
 
     private fun createNewNote(folder: File): Note {
