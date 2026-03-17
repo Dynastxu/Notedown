@@ -96,7 +96,9 @@ fun HomeScreen(
                 Route(
                     viewModel = viewModel,
                     mainViewModel = mainViewModel,
-                    modifier = Modifier.fillMaxWidth().padding(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
                 )
                 if (notes.isEmpty() && folders.isEmpty()) {
                     // 没有笔记
@@ -357,7 +359,9 @@ fun FolderItem(
         ) {
             // 左侧文件夹图标
             Icon(
-                painter = painterResource(R.drawable.baseline_folder_24),
+                painter = if (folder.notesNum == 0) painterResource(R.drawable.outline_folder_24) else painterResource(
+                    R.drawable.baseline_folder_24
+                ),
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -473,9 +477,11 @@ fun NoteItem(
 @Composable
 fun PNoteItem() {
     NoteItem(
-        Note(File(""), NoteConfig(
-            title = "Title",
-            editDate = Date()
-        ))
+        Note(
+            File(""), NoteConfig(
+                title = "Title",
+                editDate = Date()
+            )
+        )
     )
 }
