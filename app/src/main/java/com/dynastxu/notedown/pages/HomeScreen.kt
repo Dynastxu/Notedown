@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -141,13 +142,22 @@ fun Route(
     val currentFolder by mainViewModel.currentFolder.collectAsState()
     val folderReady by mainViewModel.folderReady.collectAsState()
 
+    val listState = rememberLazyListState()
+
     LaunchedEffect(folderReady, currentFolder) {
         if (folderReady == null || currentFolder == null) return@LaunchedEffect
         viewModel.calculateRoute(folderReady!!, currentFolder!!)
     }
 
+    LaunchedEffect(route) {
+        if (route.isNotEmpty()) {
+            listState.animateScrollToItem(route.lastIndex)
+        }
+    }
+
     LazyRow(
-        modifier = modifier
+        modifier = modifier,
+        state = listState
     ) {
         items(route.size) { index ->
             if (index != 0) {
