@@ -148,7 +148,22 @@ class HomeViewModel : ViewModel() {
     }
 
     private fun countNotesNum(folder: File): Int {
-        // TODO
-        return 0
+        // TODO 可能需要改为异步执行
+        if (!folder.exists() || !folder.isDirectory) return 0
+
+        var count = 0
+        val files = folder.listFiles() ?: return 0
+
+        files.forEach { file ->
+            if (file.isDirectory) {
+                if (isNoteFolder(file)) {
+                    count++
+                } else {
+                    count += countNotesNum(file)
+                }
+            }
+        }
+
+        return count
     }
 }
