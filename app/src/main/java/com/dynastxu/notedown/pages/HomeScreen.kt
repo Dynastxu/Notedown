@@ -64,10 +64,18 @@ fun HomeScreen(
     val notes by viewModel.currentNotesList.collectAsState()
     val folders by viewModel.currentFoldersList.collectAsState()
     val selectMode by viewModel.selectMode.collectAsState()
+    val needFresh by mainViewModel.needHomeRefresh.collectAsState()
 
     LaunchedEffect(notes, folders, currentFolder) {
         if (currentFolder == null) return@LaunchedEffect
         viewModel.scanNoteFolders(currentFolder!!)
+    }
+
+    LaunchedEffect(needFresh) {
+        if (needFresh) {
+            viewModel.scanNoteFolders(currentFolder!!)
+            mainViewModel.onHomeRefreshed()
+        }
     }
 
     when (folderReady) {
@@ -170,23 +178,11 @@ fun NotesList(
     val folders by viewModel.currentFoldersList.collectAsState()
     val selectMode by viewModel.selectMode.collectAsState()
     val selections by viewModel.selections.collectAsState()
-    val needFresh by mainViewModel.needHomeRefresh.collectAsState()
     val currentFolder by mainViewModel.currentFolder.collectAsState()
 
     if (currentFolder == null) {
         Log.e("笔记列表", "当前目录为 null")
         return
-    }
-
-    LaunchedEffect(needFresh) {
-        if (needFresh) {
-            viewModel.scanNoteFolders(currentFolder!!)
-            mainViewModel.onHomeRefreshed()
-        }
-    }
-
-    LaunchedEffect(currentFolder) {
-        viewModel.scanNoteFolders(currentFolder!!)
     }
 
     DisposableEffect(Unit) {
