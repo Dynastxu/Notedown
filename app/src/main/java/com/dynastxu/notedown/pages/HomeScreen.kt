@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -64,7 +65,7 @@ fun HomeScreen(
     val folders by viewModel.currentFoldersList.collectAsState()
     val selectMode by viewModel.selectMode.collectAsState()
 
-    LaunchedEffect(notes, folders) {
+    LaunchedEffect(notes, folders, currentFolder) {
         if (currentFolder == null) return@LaunchedEffect
         viewModel.scanNoteFolders(currentFolder!!)
     }
@@ -83,6 +84,11 @@ fun HomeScreen(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Route(
+                    viewModel = viewModel,
+                    mainViewModel = mainViewModel,
+                    modifier = Modifier.fillMaxWidth().padding(8.dp)
+                )
                 if (notes.isEmpty() && folders.isEmpty()) {
                     // 没有笔记
                     Column(
@@ -113,6 +119,41 @@ fun HomeScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun Route(
+    viewModel: HomeViewModel,
+    mainViewModel: MainViewModel,
+    modifier: Modifier = Modifier
+) {
+    val route by viewModel.route.collectAsState()
+    val currentFolder by mainViewModel.currentFolder.collectAsState()
+    val folderReady by mainViewModel.folderReady.collectAsState()
+
+    LaunchedEffect(folderReady, currentFolder) {
+        if (folderReady == null || currentFolder == null) return@LaunchedEffect
+        viewModel.calculateRoute(folderReady!!, currentFolder!!)
+    }
+
+    LazyRow(
+        modifier = modifier
+    ) {
+        items(route.size) { index ->
+            if (index != 0) {
+                Text(" > ")
+            }
+            Text(
+                text = route[index].name,
+                modifier = Modifier
+                    .combinedClickable(
+                        onClick = {
+                            mainViewModel.setCurrentFolder(route[index])
+                        }
+                    )
+            )
         }
     }
 }

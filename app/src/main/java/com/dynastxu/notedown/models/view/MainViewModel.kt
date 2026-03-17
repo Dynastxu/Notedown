@@ -56,6 +56,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _needHomeRefresh.value = false
     }
 
+    fun needHomeRefresh() {
+        _needHomeRefresh.value = true
+    }
+
     fun setSelectedImage(image: ImageData) {
         _selectedImage.value = image
     }

@@ -26,7 +26,41 @@ class HomeViewModel : ViewModel() {
     private val _selections = MutableStateFlow<List<Int>>(emptyList())
     val selections: StateFlow<List<Int>> = _selections
 
+    private val _route = MutableStateFlow<List<File>>(emptyList())
+    val route: StateFlow<List<File>> = _route
+
+
     private val gson = Gson()
+
+    fun calculateRoute(root: File, current: File) {
+        val fromPath = root.absolutePath
+        val toPath = current.absolutePath
+
+        // 确保 toPath 是 fromPath 的子目录
+        if (!toPath.startsWith(fromPath)) {
+            Log.e("路径错误", "toPath 必须是 fromPath 的子目录")
+            _route.value = listOf(root)
+        }
+
+        // 移除前缀并分割路径
+        val relativePath = toPath.removePrefix(fromPath).removePrefix("/")
+
+        // 如果相对路径为空，说明两者相同，返回空列表
+        if (relativePath.isBlank()) _route.value = listOf(root)
+
+        // 按分隔符分割并过滤空字符串
+        val pathSegments = relativePath.split("/").filter { it.isNotBlank() }
+
+        // 构建 File 对象列表
+        _route.value = buildList {
+            add(root)
+            var currentFile = root
+            for (segment in pathSegments) {
+                currentFile = File(currentFile, segment)
+                add(currentFile)
+            }
+        }
+    }
 
     fun setSelectMode(selectMode: Boolean) {
         _selectMode.value = selectMode
