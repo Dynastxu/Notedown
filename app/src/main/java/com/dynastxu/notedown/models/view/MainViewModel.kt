@@ -43,6 +43,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      */
     var onEdit = {}
 
+    /**
+     * 当从编辑页面返回时执行
+     */
+    var onEditBackPressed = {}
+
     init {
         // 在 ViewModel 创建时自动开始创建文件夹
         createNotedownRootFolder()

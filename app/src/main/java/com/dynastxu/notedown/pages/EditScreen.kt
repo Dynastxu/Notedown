@@ -94,16 +94,6 @@ fun EditScreen(
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            Log.d("编辑页面", "页面销毁，自动保存并退出编辑模式")
-            if (isEditing) {
-                mainViewModel.setIsEditing(false)
-                note?.let { viewModel.save(it) }
-            }
-        }
-    }
-
     if (!noteReady) {
         Loading(
             modifier = Modifier.fillMaxSize()
@@ -122,6 +112,14 @@ fun EditScreen(
     LaunchedEffect(Unit) {
         mainViewModel.setIsEditing(mainViewModel.isEditing.value)
         viewModel.setTitle(note?.config?.title ?: "")
+
+        // 设置返回时的保存逻辑
+        mainViewModel.onEditBackPressed = {
+            if (isEditing) {
+                mainViewModel.setIsEditing(false)
+                note?.let { viewModel.save(it) }
+            }
+        }
     }
 
     // 自动滚动到焦点块

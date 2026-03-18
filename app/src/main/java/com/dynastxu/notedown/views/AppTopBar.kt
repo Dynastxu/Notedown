@@ -61,7 +61,14 @@ fun AppTopBar(
 
                 else -> {
                     // 点击返回上一页
-                    IconButton(onClick = { navController.navigateUp() }) {
+                    IconButton(onClick = {
+                        // 如果在编辑页面，触发返回保存逻辑
+                        if (currentRoute == Route.EDIT) {
+                            viewModel.onEditBackPressed()
+                        }
+
+                        navController.navigateUp()
+                    }) {
                         Icon(
                             painterResource(R.drawable.outline_arrow_back_24),
                             stringResource(R.string.icon_desc_back)
