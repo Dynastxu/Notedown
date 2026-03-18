@@ -185,7 +185,8 @@ fun EditScreen(
         }
 
         if (isEditing) {
-            val focusedBlock = blocks.getOrNull(focusedIndex) ?: blocks.lastOrNull() ?: Block.RichTextBlock()
+            val focusedBlock =
+                blocks.getOrNull(focusedIndex) ?: blocks.lastOrNull() ?: Block.RichTextBlock()
             EditToolBar(
                 block = focusedBlock,
                 modifier = Modifier
@@ -362,7 +363,9 @@ fun BlockItem(
             is Block.ImageBlock -> ImageBlock(
                 block = block,
                 onClick = {
-                    if (isFocused) {
+                    if (readOnly) {
+                        onImageClick(it.image)
+                    } else if (isFocused) {
                         onImageClick(it.image)
                     } else {
                         onNeedFocus()
@@ -411,7 +414,8 @@ fun TextBlock(
             .onPreviewKeyEvent { keyEvent ->
                 // 检测删除键（Backspace）
                 if (keyEvent.key == Key.Backspace &&
-                    keyEvent.type == KeyEventType.KeyDown) {
+                    keyEvent.type == KeyEventType.KeyDown
+                ) {
                     // 检查光标是否在最开始
                     val selectionStart = state.selection.min
                     if (selectionStart == 0) {
