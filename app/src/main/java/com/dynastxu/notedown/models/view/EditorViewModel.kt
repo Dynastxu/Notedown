@@ -243,6 +243,60 @@ class EditorViewModel : ViewModel() {
         removeBlockAt(_focusedIndex.value)
     }
 
+    /**
+     * 当光标位于文本块最开始时，删除前一个非文本块并合并文本
+     *
+     * @return 是否执行了删除操作
+     */
+    fun deletePreviousBlockIfAtStart(): Boolean {
+        val currentIndex = _focusedIndex.value
+        if (currentIndex <= 0) return false
+
+        val currentBlock = _blocks.value[currentIndex]
+        if (currentBlock !is Block.RichTextBlock) return false
+
+        // 检查光标是否在最开始
+        val selectionStart = currentBlock.state?.selection?.min ?: 0
+        if (selectionStart != 0) return false
+
+        val previousBlock = _blocks.value[currentIndex - 1]
+
+        // 只处理前一个是图片块的情况
+        if (previousBlock !is Block.ImageBlock) return false
+
+        // 获取前后相邻的文本块
+        val blocks = _blocks.value.toMutableList()
+        val prevTextBlock = if (currentIndex - 2 >= 0) blocks[currentIndex - 2] as? Block.RichTextBlock else null
+
+        // 合并文本内容
+        val mergedText = buildString {
+            prevTextBlock?.state?.toMarkdown()?.let { append(it) }
+            currentBlock.state?.toMarkdown()?.let {
+                if (isNotEmpty()) append("\n")
+                append(it)
+            }
+        }
+
+        // 创建合并后的新文本块
+        val mergedBlock = Block.RichTextBlock(initialText = mergedText)
+
+        // 删除图片块和当前文本块
+        blocks.removeAt(currentIndex)
+        blocks.removeAt(currentIndex - 1)
+
+        // 替换前面的文本块
+        if (prevTextBlock != null) {
+            blocks[currentIndex - 2] = mergedBlock
+        } else {
+            blocks.add(0, mergedBlock)
+        }
+
+        _blocks.value = blocks
+        _focusedIndex.value = if (prevTextBlock != null) currentIndex - 2 else 0
+
+        return true
+    }
+
     fun removeBlockAt(index: Int) {
         val block = _blocks.value[index]
         when (block) {

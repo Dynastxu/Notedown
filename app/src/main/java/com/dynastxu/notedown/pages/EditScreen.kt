@@ -35,6 +35,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -157,6 +162,9 @@ fun EditScreen(
                     isLastBlock = isLastItem,
                     onNeedFocus = {
                         viewModel.setFocusedIndex(index)
+                    },
+                    onDeletePrevious = {
+                        viewModel.deletePreviousBlockIfAtStart()
                     },
                     modifier = Modifier
                         .border(Dp.Hairline, borderColor, MaterialTheme.shapes.small),
@@ -312,9 +320,10 @@ fun EditToolBar(
  * @param block 块
  * @param readOnly 只读
  * @param onImageClick 图片点击事件
- * @param onNeedFocus 需要焦点事件
+ * @param onNeedFocus 聚焦事件
  * @param isLastBlock 属于最后一个块
  * @param isFocused 是否被聚焦
+ * @param onDeletePrevious 删除前一个块事件
  */
 @Composable
 fun BlockItem(
@@ -324,7 +333,8 @@ fun BlockItem(
     onImageClick: (ImageData) -> Unit = {},
     isLastBlock: Boolean = false,
     onNeedFocus: () -> Unit = {},
-    isFocused: Boolean = false
+    isFocused: Boolean = false,
+    onDeletePrevious: () -> Boolean = { false }
 ) {
     Box(
         modifier = modifier
@@ -334,7 +344,8 @@ fun BlockItem(
                 block = block,
                 readOnly = readOnly,
                 isLastBlock = isLastBlock,
-                onNeedFocus = onNeedFocus
+                onNeedFocus = onNeedFocus,
+                onDeletePrevious = onDeletePrevious
             )
 
             is Block.ImageBlock -> ImageBlock(
@@ -352,12 +363,21 @@ fun BlockItem(
     }
 }
 
+/**
+ * 文本块
+ * @param block 文本块
+ * @param readOnly 只读
+ * @param isLastBlock 是否是最后一个块
+ * @param onNeedFocus 聚焦事件
+ * @param onDeletePrevious 删除前一个块事件
+ */
 @Composable
 fun TextBlock(
     block: Block.RichTextBlock,
     readOnly: Boolean,
     isLastBlock: Boolean = false,
-    onNeedFocus: () -> Unit
+    onNeedFocus: () -> Unit,
+    onDeletePrevious: () -> Boolean = { false }
 ) {
     var state = rememberRichTextState()
 
@@ -376,7 +396,20 @@ fun TextBlock(
             .fillMaxSize()
             .padding(8.dp)
             .focusable()
-            .onFocusChanged { if (it.isFocused) onNeedFocus() },
+            .onFocusChanged { if (it.isFocused) onNeedFocus() }
+            .onPreviewKeyEvent { keyEvent ->
+                // 检测删除键（Backspace）
+                if (keyEvent.key == Key.Backspace &&
+                    keyEvent.type == KeyEventType.KeyDown) {
+                    // 检查光标是否在最开始
+                    val selectionStart = state.selection.min
+                    if (selectionStart == 0) {
+                        // 调用删除前一个块的方法
+                        onDeletePrevious()
+                    }
+                }
+                false
+            },
         textStyle = TextStyle(
             fontSize = 16.sp
         ),
@@ -389,6 +422,12 @@ fun TextBlock(
     )
 }
 
+/**
+ * 图片块
+ * @param block 图片块
+ * @param onClick 图片点击事件
+ * @param onLongClick 图片长按事件
+ */
 @Composable
 fun ImageBlock(
     block: Block.ImageBlock,
