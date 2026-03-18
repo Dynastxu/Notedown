@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,7 +76,7 @@ fun EditScreen(
 ) {
     val blocks by viewModel.blocks.collectAsState()
     val focusedIndex by viewModel.focusedIndex.collectAsState()
-    val isEditing by viewModel.isEditing.collectAsState()
+    val isEditing by mainViewModel.isEditing.collectAsState()
     val note by mainViewModel.selectedNote.collectAsState()
     val listState = rememberLazyListState()
     val noteReady by viewModel.noteReady.collectAsState()
@@ -93,6 +94,16 @@ fun EditScreen(
         }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            Log.d("编辑页面", "页面销毁，自动保存并退出编辑模式")
+            if (isEditing) {
+                mainViewModel.setIsEditing(false)
+                note?.let { viewModel.save(it) }
+            }
+        }
+    }
+
     if (!noteReady) {
         Loading(
             modifier = Modifier.fillMaxSize()
@@ -102,14 +113,14 @@ fun EditScreen(
 
     mainViewModel.onEdit = {
         val isEditing = mainViewModel.isEditing.value
-        viewModel.setIsEditing(isEditing)
+        mainViewModel.setIsEditing(isEditing)
         if (!isEditing) {
             viewModel.save(note!!)
         }
     }
 
     LaunchedEffect(Unit) {
-        viewModel.setIsEditing(mainViewModel.isEditing.value)
+        mainViewModel.setIsEditing(mainViewModel.isEditing.value)
         viewModel.setTitle(note?.config?.title ?: "")
     }
 

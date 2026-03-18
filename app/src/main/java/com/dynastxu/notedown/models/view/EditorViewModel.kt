@@ -56,9 +56,6 @@ class EditorViewModel : ViewModel() {
     private val _focusedIndex = MutableStateFlow(0)
     val focusedIndex: StateFlow<Int> = _focusedIndex
 
-    private val _isEditing = MutableStateFlow(false)
-    val isEditing: StateFlow<Boolean> = _isEditing
-
     private val _noteReady = MutableStateFlow(false)
     val noteReady: StateFlow<Boolean> = _noteReady
 
@@ -233,10 +230,6 @@ class EditorViewModel : ViewModel() {
                 // 可以在这里添加更多的错误处理逻辑
             }
         }
-    }
-
-    fun setIsEditing(isEditing: Boolean) {
-        _isEditing.value = isEditing
     }
 
     fun removeFocusedBlock() {
