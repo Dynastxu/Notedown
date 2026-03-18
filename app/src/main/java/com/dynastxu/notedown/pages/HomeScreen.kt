@@ -1,6 +1,8 @@
 package com.dynastxu.notedown.pages
 
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -33,6 +35,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +50,7 @@ import com.dynastxu.notedown.models.data.NoteConfig
 import com.dynastxu.notedown.models.data.Route
 import com.dynastxu.notedown.models.view.HomeViewModel
 import com.dynastxu.notedown.models.view.MainViewModel
+import com.dynastxu.notedown.utils.export
 import com.dynastxu.notedown.views.Loading
 import java.io.File
 import java.util.Date
@@ -274,8 +278,23 @@ fun BottomToolBar(viewModel: HomeViewModel, modifier: Modifier = Modifier, curre
             horizontalArrangement = Arrangement.Center
         ) {
             // 导出
+            val context = LocalContext.current
+            val createZipLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.CreateDocument("application/zip")
+            ) { uri ->
+                uri?.let {
+                    val selectedFolders = viewModel.getSelectedFolders()
+                    if (selectedFolders.isNotEmpty()) {
+                        export(context, selectedFolders, it)
+                        viewModel.setSelectMode(false)
+                    }
+                }
+            }
             IconButton(
-                onClick = {} // TODO
+                onClick = {
+                    val timestamp = System.currentTimeMillis()
+                    createZipLauncher.launch("notedown_export_$timestamp.zip")
+                }
             ) {
                 Icon(
                     painterResource(R.drawable.outline_export_notes_24),

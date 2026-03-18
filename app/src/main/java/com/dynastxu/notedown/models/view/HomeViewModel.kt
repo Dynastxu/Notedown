@@ -32,6 +32,19 @@ class HomeViewModel : ViewModel() {
 
     private val gson = Gson()
 
+    fun getSelectedFolders(): List<File> {
+        val selections = mutableListOf<File>()
+        _selections.value.forEach { index ->
+            if (index >= _currentFoldersList.value.size) {
+                val newIndex = index - _currentFoldersList.value.size
+                selections.add(_currentNotesList.value[newIndex].folder)
+            } else {
+                selections.add(_currentFoldersList.value[index].folder)
+            }
+        }
+        return selections
+    }
+
     fun calculateRoute(root: File, current: File) {
         val fromPath = root.absolutePath
         val toPath = current.absolutePath
