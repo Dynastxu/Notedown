@@ -76,7 +76,7 @@ fun AppDrawerContent(
         NavigationDrawerItem(
             label = { Text(stringResource(R.string.label_search)) },
             selected = false,
-            onClick = { TODO() },
+            onClick = { }, // TODO
             icon = { Icon(painterResource(R.drawable.outline_search_24), stringResource(R.string.label_search)) }
         )
         HorizontalDivider(thickness = Dp.Hairline)
