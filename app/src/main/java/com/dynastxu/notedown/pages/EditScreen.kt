@@ -4,6 +4,9 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
@@ -184,7 +187,12 @@ fun EditScreen(
             }
         }
 
-        if (isEditing) {
+        AnimatedVisibility(
+            visible = isEditing,
+            enter = slideInVertically(initialOffsetY = { it }), // FIXME 动画效果非预期
+            exit = slideOutVertically(targetOffsetY = { it * 2 }),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
             val focusedBlock = blocks[focusedIndex.coerceIn(0, blocks.size - 1)]
             EditToolBar(
                 block = focusedBlock,
