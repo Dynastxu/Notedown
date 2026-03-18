@@ -98,6 +98,7 @@ fun EditScreen(
         Loading(
             modifier = Modifier.fillMaxSize()
         )
+        note?.let { viewModel.readNote(it) }
         return
     }
 
