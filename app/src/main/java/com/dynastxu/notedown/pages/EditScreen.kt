@@ -28,10 +28,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -111,7 +113,6 @@ fun EditScreen(
     }
 
     LaunchedEffect(Unit) {
-        mainViewModel.setIsEditing(mainViewModel.isEditing.value)
         viewModel.setTitle(note?.config?.title ?: "")
 
         // 设置返回时的保存逻辑
@@ -184,8 +185,7 @@ fun EditScreen(
         }
 
         if (isEditing) {
-            val focusedBlock =
-                blocks.getOrNull(focusedIndex) ?: blocks.lastOrNull() ?: Block.RichTextBlock()
+            val focusedBlock = blocks[focusedIndex.coerceIn(0, blocks.size - 1)]
             EditToolBar(
                 block = focusedBlock,
                 modifier = Modifier
@@ -205,6 +205,22 @@ fun EditToolBar(
     viewModel: EditorViewModel,
     note: Note
 ) {
+    var shouldShowToolbar by remember { mutableStateOf(false) }
+
+    LaunchedEffect(block) {
+        if (block is Block.RichTextBlock) {
+            if (block.state != null) {
+                shouldShowToolbar = true
+            }
+        } else {
+            shouldShowToolbar = true
+        }
+    }
+
+    if (!shouldShowToolbar) {
+        return
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()

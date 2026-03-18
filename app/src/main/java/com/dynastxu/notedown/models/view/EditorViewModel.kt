@@ -71,7 +71,7 @@ class EditorViewModel : ViewModel() {
     fun readNote(note: Note) {
         viewModelScope.launch(Dispatchers.IO) {
             Log.i("读取笔记", "正在读取")
-            _blocks.value = emptyList()
+//            _blocks.value = emptyList()
 
             try {
                 // 读取 MD 文件

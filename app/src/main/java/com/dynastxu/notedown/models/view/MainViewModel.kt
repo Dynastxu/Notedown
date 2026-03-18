@@ -86,8 +86,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun createNewNote() {
-        _selectedNote.value = createNewNote(_currentFolder.value!!)
         _isEditing.value = true
+        _selectedNote.value = createNewNote(_currentFolder.value!!)
     }
 
     fun createNewFolder(name: String, unnamedName: String) {
