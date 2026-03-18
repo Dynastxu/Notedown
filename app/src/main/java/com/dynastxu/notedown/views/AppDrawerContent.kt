@@ -1,25 +1,33 @@
 package com.dynastxu.notedown.views
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.dynastxu.notedown.R
 import com.dynastxu.notedown.models.data.Route
 import com.dynastxu.notedown.models.view.MainViewModel
@@ -34,7 +42,7 @@ fun AppDrawerContent(
     navController: NavHostController,
     drawerState: DrawerState,
     scope: CoroutineScope,
-    viewModel: MainViewModel,
+    viewModel: MainViewModel?,
     onNewFolderClick: () -> Unit = {}
 ) {
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -45,11 +53,24 @@ fun AppDrawerContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = stringResource(R.string.app_name),
-            modifier = Modifier.padding(16.dp),
-            style = MaterialTheme.typography.titleLarge
-        )
+        Row(
+            modifier = Modifier.padding(0.dp, 16.dp, 16.dp, 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { scope.launch { drawerState.close() } }
+            ) {
+                Icon(
+                    painterResource(R.drawable.outline_menu_24),
+                    stringResource(R.string.icon_desc_menu)
+                )
+            }
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = stringResource(R.string.app_name),
+                style = MaterialTheme.typography.titleLarge
+            )
+        }
         HorizontalDivider()
         Spacer(Modifier.height(16.dp))
         // 添加笔记
@@ -57,11 +78,16 @@ fun AppDrawerContent(
             label = { Text(stringResource(R.string.label_add_note)) },
             selected = false,
             onClick = {
-                viewModel.createNewNote()
+                viewModel?.createNewNote()
                 navController.navigate(Route.EDIT)
                 scope.launch { drawerState.close() }
             },
-            icon = { Icon(painterResource(R.drawable.outline_add_notes_24), stringResource(R.string.label_add_note)) }
+            icon = {
+                Icon(
+                    painterResource(R.drawable.outline_add_notes_24),
+                    stringResource(R.string.label_add_note)
+                )
+            }
         )
         // 添加文件夹
         NavigationDrawerItem(
@@ -70,14 +96,24 @@ fun AppDrawerContent(
             onClick = {
                 onNewFolderClick()
             },
-            icon = { Icon(painterResource(R.drawable.outline_create_new_folder_24), stringResource(R.string.label_creat_new_folder))}
+            icon = {
+                Icon(
+                    painterResource(R.drawable.outline_create_new_folder_24),
+                    stringResource(R.string.label_creat_new_folder)
+                )
+            }
         )
         // 搜索
         NavigationDrawerItem(
             label = { Text(stringResource(R.string.label_search)) },
             selected = false,
             onClick = { }, // TODO
-            icon = { Icon(painterResource(R.drawable.outline_search_24), stringResource(R.string.label_search)) }
+            icon = {
+                Icon(
+                    painterResource(R.drawable.outline_search_24),
+                    stringResource(R.string.label_search)
+                )
+            }
         )
         HorizontalDivider(thickness = Dp.Hairline)
         // 设置
@@ -88,7 +124,23 @@ fun AppDrawerContent(
                 navController.navigate(Route.SETTINGS)
                 scope.launch { drawerState.close() }
             },
-            icon = { Icon(painterResource(R.drawable.outline_settings_24), stringResource(R.string.title_settings)) }
+            icon = {
+                Icon(
+                    painterResource(R.drawable.outline_settings_24),
+                    stringResource(R.string.title_settings)
+                )
+            }
         )
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun PAppDrawerContent() {
+    AppDrawerContent(
+        navController = rememberNavController(),
+        drawerState = DrawerState(initialValue = DrawerValue.Closed),
+        scope = rememberCoroutineScope(),
+        viewModel = null
+    )
 }
