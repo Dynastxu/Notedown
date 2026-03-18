@@ -128,54 +128,67 @@ class EditorViewModel : ViewModel() {
     }
 
     /**
-     * 解析 Markdown 内容，将文本和图片分离成不同的 block
+     * 解析 Markdown 内容，将文本和非文本分离成不同的 block
+     *
+     * @return 块列表，满足：1.第一个元素是文本块 2.最后一个元素是文本块 3.非文本块的相邻块是文本块
      */
     private fun parseMarkdownContent(content: String): List<Block> {
         val blocks = mutableListOf<Block>()
         val matcher = IMAGE_PATTERN.matcher(content)
         var lastIndex = 0
 
-        // 查找所有图片
+        // 遍历所有图片标记，将内容分割成文本块和图片块
         while (matcher.find()) {
             val start = matcher.start()
             val end = matcher.end()
             val alt = unescapeMarkdownSpecialChars(matcher.group(1) ?: "")
             val src = unescapeMarkdownSpecialChars(matcher.group(2) ?: "")
 
-            // 添加图片前面的文本块
+            // 如果图片前有文本内容，则添加为文本块
             if (start > lastIndex) {
-                // 如果有
                 val textBeforeImage = content.substring(lastIndex, start)
                 if (textBeforeImage.isNotBlank()) {
-                    val textBlock = Block.RichTextBlock(initialText = textBeforeImage.dropLast(2)) // 去除最后两个换号符
-                    // 这里需要在 Compose 环境中创建 RichTextState
+                    val textBlock = Block.RichTextBlock(initialText = textBeforeImage.trimEnd())
                     blocks.add(textBlock)
                 }
-            } else {
-                // 如果没有
-                val textBlock = Block.RichTextBlock()
-                blocks.add(textBlock)
             }
 
-            // 添加图片块
+            // 确保第一个块是文本块：如果当前为空列表或最后一个不是文本块，则添加空文本块
+            if (blocks.isEmpty() || blocks.last() !is Block.RichTextBlock) {
+                blocks.add(Block.RichTextBlock())
+            }
+
+            // 添加图片块（此时前一个块保证是文本块）
             blocks.add(Block.ImageBlock(image = ImageData(src, alt)))
+
+            // 在图片块后立即添加空文本块，确保图片块后也有文本块
+            blocks.add(Block.RichTextBlock())
 
             lastIndex = end
         }
 
-        // 添加最后剩余的文本
+        // 处理最后剩余的文本内容
         if (lastIndex < content.length) {
-            // 如果有
             val remainingText = content.substring(lastIndex)
             if (remainingText.isNotBlank()) {
-                val textBlock = Block.RichTextBlock(initialText = remainingText)
-                // 同样，这里需要在 Compose 环境中处理
-                blocks.add(textBlock)
+                // 如果最后一个块已经是文本块，则合并内容；否则添加新文本块
+                if (blocks.isNotEmpty() && blocks.last() is Block.RichTextBlock) {
+                    val lastTextBlock = blocks.last() as Block.RichTextBlock
+                    val currentText = lastTextBlock.state?.toMarkdown() ?: ""
+                    lastTextBlock.state?.setMarkdown(currentText + remainingText)
+                } else {
+                    blocks.add(Block.RichTextBlock(initialText = remainingText))
+                }
             }
         }
 
-        // 如果没有任何内容，至少添加一个空的文本块
+        // 如果没有任何内容，至少添加一个空文本块
         if (blocks.isEmpty()) {
+            blocks.add(Block.RichTextBlock())
+        }
+
+        // 最终检查：确保最后一个块一定是文本块
+        if (blocks.last() !is Block.RichTextBlock) {
             blocks.add(Block.RichTextBlock())
         }
 
