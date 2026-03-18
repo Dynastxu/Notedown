@@ -82,7 +82,10 @@ fun EditScreen(
     }
 
     LaunchedEffect(note) {
-        viewModel.readNote(note!!)
+        if (!isEditing) {
+            Log.d("笔记", "读取笔记")
+            viewModel.readNote(note!!)
+        }
     }
 
     if (!noteReady) {
