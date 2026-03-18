@@ -163,7 +163,7 @@ fun EditScreen(
         }
 
         if (isEditing) {
-            val focusedBlock = blocks[focusedIndex]
+            val focusedBlock = blocks.getOrNull(focusedIndex) ?: blocks.lastOrNull() ?: Block.RichTextBlock()
             EditToolBar(
                 block = focusedBlock,
                 modifier = Modifier
