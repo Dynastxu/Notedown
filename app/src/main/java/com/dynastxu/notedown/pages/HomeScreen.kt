@@ -1,5 +1,6 @@
 package com.dynastxu.notedown.pages
 
+import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -45,8 +46,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.dynastxu.notedown.R
 import com.dynastxu.notedown.models.data.Folder
-import com.dynastxu.notedown.models.data.Note
-import com.dynastxu.notedown.models.data.NoteConfig
+import com.dynastxu.notedown.models.data.note.Note
+import com.dynastxu.notedown.models.data.note.NoteConfig
 import com.dynastxu.notedown.models.data.Route
 import com.dynastxu.notedown.models.view.HomeViewModel
 import com.dynastxu.notedown.models.view.MainViewModel
@@ -117,7 +118,11 @@ fun HomeScreen(
                         Spacer(Modifier.height(8.dp))
                         Button(onClick = {
                             mainViewModel.createNewNote()
-                            navController.navigate(Route.EDIT)
+                            val newNote = mainViewModel.selectedNote.value
+                            if (newNote != null) {
+                                val encodedPath = Uri.encode(newNote.folder.absolutePath)
+                                navController.navigate("${Route.EDIT}/$encodedPath")
+                            }
                         }) { Text(stringResource(R.string.btn_add_note)) }
                     }
                 } else {
@@ -243,7 +248,9 @@ fun NotesList(
                             viewModel.select(actualIndex)
                         } else {
                             mainViewModel.selectNote(notes[index])
-                            navController.navigate(Route.EDIT)
+                            // 使用 NavType.encodeToUrl() 方法进行安全编码
+                            val encodedPath = Uri.encode(notes[index].folder.absolutePath)
+                            navController.navigate("${Route.EDIT}/$encodedPath")
                         }
                     },
                     selected = selections.contains(actualIndex)

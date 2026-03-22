@@ -37,4 +37,6 @@
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
     <string name="unnamed_name">Unnamed</string>
+    <string name="title_preview">Preview</string>
+    <string name="icon_desc_save">Save</string>
 </resources>

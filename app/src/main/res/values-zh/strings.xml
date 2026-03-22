@@ -37,4 +37,6 @@
     <string name="confirm">确认</string>
     <string name="cancel">取消</string>
     <string name="unnamed_name">未命名</string>
+    <string name="title_preview">预览</string>
+    <string name="icon_desc_save">保存</string>
 </resources>

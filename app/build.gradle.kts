@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.gson)
     implementation(libs.zoomable)
+    implementation(libs.androidx.hilt.navigation.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -4,8 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dynastxu.notedown.models.data.Folder
-import com.dynastxu.notedown.models.data.Note
-import com.dynastxu.notedown.models.data.NoteConfig
+import com.dynastxu.notedown.models.data.note.Note
+import com.dynastxu.notedown.models.data.note.NoteConfig
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

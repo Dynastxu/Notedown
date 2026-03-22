@@ -4,9 +4,11 @@ import android.app.Application
 import android.content.Intent
 import android.os.Build
 import android.os.Process
+import dagger.hilt.android.HiltAndroidApp
 import java.io.PrintWriter
 import java.io.StringWriter
 
+@HiltAndroidApp
 class NotedownApplication : Application() {
     override fun onCreate() {
         super.onCreate()

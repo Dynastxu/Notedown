@@ -1,5 +1,6 @@
 package com.dynastxu.notedown.pages
 
+import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -22,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonColors
@@ -29,7 +31,10 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,7 +62,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -65,66 +70,41 @@ import coil3.request.crossfade
 import com.dynastxu.notedown.R
 import com.dynastxu.notedown.models.data.Block
 import com.dynastxu.notedown.models.data.ImageData
-import com.dynastxu.notedown.models.data.Note
-import com.dynastxu.notedown.models.data.Route
+import com.dynastxu.notedown.models.data.note.Note
 import com.dynastxu.notedown.models.view.EditorViewModel
-import com.dynastxu.notedown.models.view.MainViewModel
 import com.dynastxu.notedown.views.Loading
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 
 @Composable
 fun EditScreen(
+    notePathEncoded: String,
     navController: NavController,
-    mainViewModel: MainViewModel,
-    viewModel: EditorViewModel = viewModel()
+    viewModel: EditorViewModel = hiltViewModel(),
+    onImageSelected: (ImageData) -> Unit = {}
 ) {
     val blocks by viewModel.blocks.collectAsState()
     val focusedIndex by viewModel.focusedIndex.collectAsState()
-    val isEditing by mainViewModel.isEditing.collectAsState()
-    val note by mainViewModel.selectedNote.collectAsState()
     val listState = rememberLazyListState()
     val noteReady by viewModel.noteReady.collectAsState()
     val title by viewModel.title.collectAsState()
+    val isEditing by viewModel.isEditing.collectAsState()
+    val note by viewModel.note.collectAsState()
 
-    if (note == null) {
-        // TODO 显示错误页面
-        return
+    // 解码路径
+    val notePath = remember(notePathEncoded) {
+        Uri.decode(notePathEncoded)
     }
 
-    LaunchedEffect(note) {
-        if (!isEditing) {
-            Log.d("笔记", "读取笔记")
-            viewModel.readNote(note!!)
-        }
+    LaunchedEffect(notePath) {
+        viewModel.loadNote(notePath)
     }
 
     if (!noteReady) {
         Loading(
             modifier = Modifier.fillMaxSize()
         )
-        note?.let { viewModel.readNote(it) }
         return
-    }
-
-    mainViewModel.onEdit = {
-        val isEditing = mainViewModel.isEditing.value
-        mainViewModel.setIsEditing(isEditing)
-        if (!isEditing) {
-            viewModel.save(note!!)
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.setTitle(note?.config?.title ?: "")
-
-        // 设置返回时的保存逻辑
-        mainViewModel.onEditBackPressed = {
-            if (isEditing) {
-                mainViewModel.setIsEditing(false)
-                note?.let { viewModel.save(it) }
-            }
-        }
     }
 
     // 自动滚动到焦点块
@@ -132,76 +112,90 @@ fun EditScreen(
         listState.animateScrollToItem(focusedIndex)
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            item {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = {
-                        viewModel.setTitle(it)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = TextStyle(
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    readOnly = !isEditing,
-                    placeholder = {
-                        Text(
-                            stringResource(R.string.title)
-                        )
+    Scaffold(
+        topBar = {
+            // 自定义顶部栏，包含编辑模式切换按钮
+            EditTopBar(
+                isEditing = isEditing,
+                navController = navController,
+                onToggleEdit = {
+                    viewModel.toggleEditing()
+                    if (!isEditing) {
+                        viewModel.saveNote()
                     }
-                )
-            }
-            itemsIndexed(blocks) { index, block ->
-                val isLastItem = index == viewModel.blocks.collectAsState().value.size - 1
-                val isFocused = index == focusedIndex
-                val borderColor =
-                    if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent
-                BlockItem(
-                    block = block,
-                    readOnly = !isEditing,
-                    onImageClick = {
-                        mainViewModel.setSelectedImage(it)
-                        navController.navigate(Route.IMAGE)
-                    },
-                    isLastBlock = isLastItem,
-                    onNeedFocus = {
-                        viewModel.setFocusedIndex(index)
-                    },
-                    onDeletePrevious = {
-                        viewModel.deletePreviousBlockIfAtStart()
-                    },
-                    modifier = Modifier
-                        .border(Dp.Hairline, borderColor, MaterialTheme.shapes.small),
-                    isFocused = isFocused
-                )
-            }
-        }
-
-        AnimatedVisibility(
-            visible = isEditing,
-            enter = slideInVertically(initialOffsetY = { it }), // FIXME 动画效果非预期
-            exit = slideOutVertically(targetOffsetY = { it * 2 }),
-            modifier = Modifier.align(Alignment.BottomCenter)
-        ) {
-            val focusedBlock = blocks[focusedIndex.coerceIn(0, blocks.size - 1)]
-            EditToolBar(
-                block = focusedBlock,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .imePadding(),
-                viewModel = viewModel,
-                note = note!!
+                }
             )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = {
+                            viewModel.setTitle(it)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = TextStyle(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        readOnly = !isEditing,
+                        placeholder = {
+                            Text(
+                                stringResource(R.string.title)
+                            )
+                        }
+                    )
+                }
+                itemsIndexed(blocks) { index, block ->
+                    val isLastItem = index == viewModel.blocks.collectAsState().value.size - 1
+                    val isFocused = index == focusedIndex
+                    val borderColor =
+                        if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent
+                    BlockItem(
+                        block = block,
+                        readOnly = !isEditing,
+                        onImageClick = onImageSelected,
+                        isLastBlock = isLastItem,
+                        onNeedFocus = {
+                            viewModel.setFocusedIndex(index)
+                        },
+                        onDeletePrevious = {
+                            viewModel.deletePreviousBlockIfAtStart()
+                        },
+                        modifier = Modifier
+                            .border(Dp.Hairline, borderColor, MaterialTheme.shapes.small),
+                        isFocused = isFocused
+                    )
+                }
+            }
+
+            AnimatedVisibility(
+                visible = isEditing,
+                enter = slideInVertically(initialOffsetY = { it }), // FIXME 动画效果非预期
+                exit = slideOutVertically(targetOffsetY = { it * 2 }),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                val focusedBlock = blocks[focusedIndex.coerceIn(0, blocks.size - 1)]
+                EditToolBar(
+                    block = focusedBlock,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .imePadding(),
+                    viewModel = viewModel,
+                    note = note!!
+                )
+            }
         }
     }
 }
@@ -491,5 +485,47 @@ fun ImageBlock(
             Log.e("图片加载", "图片加载失败")
             Log.e("图片加载", "路径： ${block.image.src}")
         }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditTopBar(
+    isEditing: Boolean,
+    onToggleEdit: () -> Unit = {},
+    navController: NavController
+) {
+    TopAppBar(
+        title = {
+            Text(
+                text = if (isEditing) stringResource(R.string.title_edit) else stringResource(R.string.title_preview),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        },
+        actions = {
+            IconButton(onClick = onToggleEdit) {
+                Icon(
+                    painter = if (!isEditing) painterResource(R.drawable.outline_edit_24) else painterResource(
+                        R.drawable.outline_save_24
+                    ),
+                    contentDescription = if (isEditing) stringResource(R.string.icon_desc_edit) else stringResource(
+                        R.string.icon_desc_save
+                    )
+                )
+            }
+        },
+        navigationIcon = {
+            IconButton(
+                onClick = { navController.navigateUp() }
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.outline_arrow_back_24),
+                    contentDescription = stringResource(R.string.icon_desc_back)
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     )
 }

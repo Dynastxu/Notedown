@@ -3,52 +3,30 @@ package com.dynastxu.notedown.models.view
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dynastxu.notedown.models.data.Block
 import com.dynastxu.notedown.models.data.ImageData
-import com.dynastxu.notedown.models.data.Note
-import com.dynastxu.notedown.models.data.NoteConfig
-import com.google.gson.Gson
+import com.dynastxu.notedown.models.data.note.Note
+import com.dynastxu.notedown.repository.NoteRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import jakarta.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
-import java.util.Date
-import java.util.UUID
-import java.util.regex.Pattern
 
-class EditorViewModel : ViewModel() {
-    companion object {
-        // Markdown 图片语法正则表达式: ![alt](src)
-        private val IMAGE_PATTERN = Pattern.compile(
-            "!\\[((?:[^]\\\\]|\\\\.)*)]\\(((?:[^)\\\\]|\\\\.)*)\\)"
-        )
+@HiltViewModel
+class EditorViewModel @Inject constructor(
+    private val repository: NoteRepository,
+    savedStateHandle: SavedStateHandle
+) : ViewModel() {
+    private val notePath: String = Uri.decode(savedStateHandle["notePathEncoded"]) ?: ""
 
-        private fun escapeMarkdownSpecialChars(input: String): String {
-            // 需要转义的字符：\ [ ] ( )
-            return input
-                .replace("\\", "\\\\")  // 反斜杠优先转义
-                .replace("[", "\\[")
-                .replace("]", "\\]")
-                .replace("(", "\\(")
-                .replace(")", "\\)")
-        }
-
-        private fun unescapeMarkdownSpecialChars(input: String): String {
-            // 反转义：将转义序列还原
-            // 注意顺序：先处理双反斜杠，再处理其他
-            return input
-                .replace("\\\\", "\\")  // 两个反斜杠变成一个
-                .replace("\\[", "[")
-                .replace("\\]", "]")
-                .replace("\\(", "(")
-                .replace("\\)", ")")
-        }
-    }
+    private val _note = MutableStateFlow<Note?>(null)
+    val note: StateFlow<Note?> = _note
 
     private val _blocks = MutableStateFlow<List<Block>>(listOf(Block.RichTextBlock()))
     val blocks: StateFlow<List<Block>> = _blocks
@@ -62,173 +40,41 @@ class EditorViewModel : ViewModel() {
     private val _title = MutableStateFlow("")
     val title: StateFlow<String> = _title
 
-    private val gson = Gson()
+    private val _isEditing = MutableStateFlow(false)
+    val isEditing: StateFlow<Boolean> = _isEditing
 
     fun setTitle(title: String) {
         _title.value = title
     }
 
-    fun readNote(note: Note) {
-        viewModelScope.launch(Dispatchers.IO) {
-            Log.i("读取笔记", "正在读取")
-//            _blocks.value = emptyList()
-
-            try {
-                // 读取 MD 文件
-                val mdFile = File(note.folder, "${note.folder.name}.md")
-                if (mdFile.exists() && mdFile.isFile) {
-                    val content = mdFile.readText(Charsets.UTF_8)
-                    Log.d("读取笔记", "文本内容： \n$content")
-                    // 解析内容并创建 blocks
-                    val parsedBlocks = parseMarkdownContent(content)
-
-                    // 读取并更新配置文件
-                    val configFile = File(note.folder, "config.js")
-                    val config = if (configFile.exists() && configFile.isFile) {
-                        val configContent = configFile.readText()
-                        val noteConfig = gson.fromJson(configContent, NoteConfig::class.java)
-                        // 更新读取时间
-                        noteConfig.copy(readDate = Date()).also { updatedConfig ->
-                            configFile.writeText(gson.toJson(updatedConfig))
-                        }
-                    } else {
-                        // 如果配置文件不存在，创建新的配置
-                        NoteConfig(readDate = Date()).also { newConfig ->
-                            if (configFile.createNewFile()) {
-                                configFile.writeText(gson.toJson(newConfig))
-                            }
-                        }
-                    }
-                    note.config.update(config)
-
-                    // 在主线程更新 UI
-                    withContext(Dispatchers.Main) {
-                        _blocks.value = parsedBlocks
-                    }
-                } else {
-                    // TODO 改为显示文件不存在
-                    withContext(Dispatchers.Main) {
-                        _blocks.value = listOf(Block.RichTextBlock())
-                    }
-                }
-            } catch (e: Exception) {
-                // 出错时创建默认的文本块
-                withContext(Dispatchers.Main) {
-                    _blocks.value = listOf(Block.RichTextBlock())
-                }
-                Log.e("读取笔记", "读取失败： $e")
-            }
-
-            _noteReady.value = true
-            Log.i("读取笔记", "读取成功")
-        }
-    }
-
     /**
-     * 解析 Markdown 内容，将文本和非文本分离成不同的 block
-     *
-     * @return 块列表，满足：1.第一个元素是文本块 2.最后一个元素是文本块 3.非文本块的相邻块是文本块
+     * 切换编辑模式
      */
-    private fun parseMarkdownContent(content: String): List<Block> {
-        val blocks = mutableListOf<Block>()
-        val matcher = IMAGE_PATTERN.matcher(content)
-        var lastIndex = 0
-
-        // 遍历所有图片标记，将内容分割成文本块和图片块
-        while (matcher.find()) {
-            val start = matcher.start()
-            val end = matcher.end()
-            val alt = unescapeMarkdownSpecialChars(matcher.group(1) ?: "")
-            val src = unescapeMarkdownSpecialChars(matcher.group(2) ?: "")
-
-            // 如果图片前有文本内容，则添加为文本块
-            if (start > lastIndex) {
-                val textBeforeImage = content.substring(lastIndex, start)
-                if (textBeforeImage.isNotBlank()) {
-                    val textBlock = Block.RichTextBlock(initialText = textBeforeImage.trimEnd())
-                    blocks.add(textBlock)
-                }
-            }
-
-            // 确保第一个块是文本块：如果当前为空列表或最后一个不是文本块，则添加空文本块
-            if (blocks.isEmpty() || blocks.last() !is Block.RichTextBlock) {
-                blocks.add(Block.RichTextBlock())
-            }
-
-            // 添加图片块（此时前一个块保证是文本块）
-            blocks.add(Block.ImageBlock(image = ImageData(src, alt)))
-
-            // 在图片块后立即添加空文本块，确保图片块后也有文本块
-            blocks.add(Block.RichTextBlock())
-
-            lastIndex = end
-        }
-
-        // 处理最后剩余的文本内容
-        if (lastIndex < content.length) {
-            val remainingText = content.substring(lastIndex)
-            if (remainingText.isNotBlank()) {
-                // 如果最后一个块已经是文本块，则合并内容；否则添加新文本块
-                if (blocks.isNotEmpty() && blocks.last() is Block.RichTextBlock) {
-                    val lastTextBlock = blocks.last() as Block.RichTextBlock
-                    val currentText = lastTextBlock.state?.toMarkdown() ?: ""
-                    lastTextBlock.state?.setMarkdown(currentText + remainingText)
-                } else {
-                    blocks.add(Block.RichTextBlock(initialText = remainingText))
-                }
-            }
-        }
-
-        // 如果没有任何内容，至少添加一个空文本块
-        if (blocks.isEmpty()) {
-            blocks.add(Block.RichTextBlock())
-        }
-
-        // 最终检查：确保最后一个块一定是文本块
-        if (blocks.last() !is Block.RichTextBlock) {
-            blocks.add(Block.RichTextBlock())
-        }
-
-        return blocks
+    fun toggleEditing() {
+        _isEditing.value = !_isEditing.value
     }
 
-    fun save(note: Note) {
-        viewModelScope.launch {
-            Log.i("保存笔记", "正在保存")
-            val content = StringBuilder()
-            _blocks.value.forEach { block ->
-                when (block) {
-                    is Block.RichTextBlock -> {
-                        content.append(block.state?.toMarkdown())
-                    }
-
-                    is Block.ImageBlock -> {
-                        val escapedSrc = escapeMarkdownSpecialChars(block.image.src)
-                        val escapedAlt = escapeMarkdownSpecialChars(block.image.alt)
-                        content.append("\n\n![${escapedAlt}](${escapedSrc})\n\n")
-                    }
-                }
+    fun loadNote(notePath: String = this.notePath) {
+        _noteReady.value = false
+        if (!notePath.isEmpty()) {
+            viewModelScope.launch {
+                val content = repository.readNote(notePath) ?: return@launch
+                _blocks.value = content.content
+                _title.value = content.note.config.title
+                _noteReady.value = true
             }
-            try {
-                val file = File(note.folder, "${note.folder.name}.md")
-                // 使用 writeText 会自动创建文件，无需先调用 createNewFile()
-                file.writeText(content.toString())
+        } else {
+            Log.e("加载笔记", "笔记路径为空")
+        }
+    }
 
-                // 更新并保存配置文件
-                val configFile = File(note.folder, "config.js")
-                note.config.editDate = Date()
-                note.config.title = _title.value
-                if (configFile.exists() || configFile.createNewFile()) {
-                    configFile.writeText(gson.toJson(note.config))
-                }
-
-                Log.i("保存笔记", "保存成功")
-            } catch (e: Exception) {
-                // 捕获并记录具体异常信息
-                Log.e("保存笔记", "保存失败: ${e.javaClass.simpleName} - ${e.message}")
-                Log.e("保存笔记", "堆栈跟踪:", e)
-                // 可以在这里添加更多的错误处理逻辑
+    fun saveNote() {
+        if (_note.value != null) {
+            viewModelScope.launch {
+                repository.saveNote(_note.value!!, _blocks.value)
             }
+        } else {
+            Log.e("保存笔记", "笔记为 null")
         }
     }
 
@@ -334,7 +180,12 @@ class EditorViewModel : ViewModel() {
     /**
      * 由界面层调用，传入用户选中的图片 URI 列表
      *
-     *
+     * @param note 当前笔记
+     * @param uris 图片 URI 列表
+     * @param context 上下文
+     * @param fullContent 文本块[Block.RichTextBlock]的全部文本内容（ Markdown 格式）
+     * @param selectionStart 选中开始位置
+     * @param selectionEnd 选中结束位置
      */
     fun onImagesSelected(
         note: Note,
@@ -344,14 +195,13 @@ class EditorViewModel : ViewModel() {
         selectionStart: Int,
         selectionEnd: Int
     ) {
+        // TODO 改为先显示占位图，异步加载图片，以解决性能问题
         if (uris.isEmpty()) return
         viewModelScope.launch(Dispatchers.IO) {
             val paths = uris.mapNotNull { uri ->
-                val folder = File(note.folder, "imgs").apply { 
-                    if (!exists()) mkdirs() 
-                }
-                copyUriToFolder(folder, uri, context) // 复制，返回本地路径
+                copyUriToNote(note, uri, context) // 复制，返回本地路径
             }
+            if (paths.isEmpty()) return@launch
             // 在主线程更新 blocks
             withContext(Dispatchers.Main) {
                 insertImageBlocks(paths, fullContent, selectionStart, selectionEnd)
@@ -359,34 +209,9 @@ class EditorViewModel : ViewModel() {
         }
     }
 
-    /**
-     * 将 Uri 指向的图片复制指定目录，返回文件绝对路径
-     *
-     * @param folder 指定目录
-     * @param uri 图片 Uri
-     * @param context 上下文
-     */
-    private suspend fun copyUriToFolder(folder: File, uri: Uri, context: Context): String? =
-        withContext(Dispatchers.IO) {
-            val contentResolver = context.contentResolver
-            val inputStream = contentResolver.openInputStream(uri) ?: return@withContext null
-            // 获取 MIME 类型并转换为对应扩展名
-            val mimeType = contentResolver.getType(uri) ?: "image/jpeg"
-            val extension = when {
-                mimeType.startsWith("image/jpeg") -> ".jpg"
-                mimeType.startsWith("image/png") -> ".png"
-                mimeType.startsWith("image/gif") -> ".gif"
-                mimeType.startsWith("image/webp") -> ".webp"
-                mimeType.startsWith("image/bmp") -> ".bmp"
-                else -> ".jpg" // 默认回退到 jpg
-            }
-            val fileName = "img_${UUID.randomUUID()}$extension"
-            val file = File(folder, fileName)
-            FileOutputStream(file).use { outputStream ->
-                inputStream.copyTo(outputStream)
-            }
-            file.absolutePath
-        }
+    private suspend fun copyUriToNote(note: Note, uri: Uri, context: Context): String? {
+        return repository.copyImageToNote(note, uri)
+    }
 
     /**
      * 将图片路径插入为 ImageBlock

@@ -8,7 +8,9 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.res.stringResource
 import com.dynastxu.notedown.pages.ErrorScreen
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class ErrorActivity : ComponentActivity() {
     companion object {
         const val EXTRA_STACK_TRACE = "extra_stack_trace"

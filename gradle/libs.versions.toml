@@ -15,6 +15,7 @@ coilCompose = "3.4.0"
 gson = "2.13.2"
 zoomable = "2.8.0"
 ksp = "2.3.6"
+hiltNavigationCompose = "1.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,6 +39,7 @@ richeditor-compose = { group = "com.mohamedrejeb.richeditor", name = "richeditor
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coilCompose" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 zoomable = { group = "net.engawapg.lib", name = "zoomable", version.ref = "zoomable" }
+androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

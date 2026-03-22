@@ -1,4 +1,4 @@
-package com.dynastxu.notedown.models.data
+package com.dynastxu.notedown.models.data.note
 
 import java.io.File
 

@@ -31,10 +31,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.dynastxu.notedown.models.data.Route
 import com.dynastxu.notedown.models.view.MainViewModel
 import com.dynastxu.notedown.pages.EditScreen
@@ -44,8 +46,10 @@ import com.dynastxu.notedown.pages.SettingsScreen
 import com.dynastxu.notedown.ui.theme.NotedownTheme
 import com.dynastxu.notedown.views.AppDrawerContent
 import com.dynastxu.notedown.views.AppTopBar
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
@@ -87,8 +91,9 @@ class MainActivity : ComponentActivity() {
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         topBar = {
+                            if (currentRoute == null) return@Scaffold
                             AnimatedVisibility(
-                                visible = currentRoute != Route.IMAGE,
+                                visible = !currentRoute.startsWith(Route.IMAGE) && !currentRoute.startsWith(Route.EDIT),
                                 enter = fadeIn(animationSpec = tween(300)) + expandVertically(
                                     animationSpec = tween(300)
                                 ),
@@ -113,7 +118,20 @@ class MainActivity : ComponentActivity() {
                         ) {
                             composable(Route.HOME) { HomeScreen(navController, viewModel) }
                             composable(Route.SETTINGS) { SettingsScreen(navController) }
-                            composable(Route.EDIT) { EditScreen(navController, viewModel) }
+                            composable(
+                                "${Route.EDIT}/{notePathEncoded}",
+                                arguments = listOf(navArgument("notePathEncoded") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                val notePathEncoded = backStackEntry.arguments?.getString("notePathEncoded") ?: return@composable
+                                EditScreen(
+                                    navController = navController,
+                                    notePathEncoded = notePathEncoded,
+                                    onImageSelected = {
+                                        viewModel.setSelectedImage(it)
+                                        navController.navigate(Route.IMAGE)
+                                    }
+                                )
+                            }
                             composable(Route.IMAGE) { ImageScreen(navController, viewModel) }
                         }
                     }
