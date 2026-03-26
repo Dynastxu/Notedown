@@ -81,7 +81,10 @@ class MainActivity : ComponentActivity() {
                                 drawerState = drawerState,
                                 scope = scope,
                                 viewModel = viewModel,
-                                onNewFolderClick = { showFolderDialog = true }
+                                onNewFolderClick = {
+                                    @Suppress("AssignedValueIsNeverRead")
+                                    showFolderDialog = true
+                                }
                             )
                         }
                     },
@@ -93,7 +96,9 @@ class MainActivity : ComponentActivity() {
                         topBar = {
                             if (currentRoute == null) return@Scaffold
                             AnimatedVisibility(
-                                visible = !currentRoute.startsWith(Route.IMAGE) && !currentRoute.startsWith(Route.EDIT),
+                                visible = !currentRoute.startsWith(Route.IMAGE) && !currentRoute.startsWith(
+                                    Route.EDIT
+                                ),
                                 enter = fadeIn(animationSpec = tween(300)) + expandVertically(
                                     animationSpec = tween(300)
                                 ),
@@ -120,9 +125,13 @@ class MainActivity : ComponentActivity() {
                             composable(Route.SETTINGS) { SettingsScreen(navController) }
                             composable(
                                 "${Route.EDIT}/{notePathEncoded}",
-                                arguments = listOf(navArgument("notePathEncoded") { type = NavType.StringType })
+                                arguments = listOf(navArgument("notePathEncoded") {
+                                    type = NavType.StringType
+                                })
                             ) { backStackEntry ->
-                                val notePathEncoded = backStackEntry.arguments?.getString("notePathEncoded") ?: return@composable
+                                val notePathEncoded =
+                                    backStackEntry.arguments?.getString("notePathEncoded")
+                                        ?: return@composable
                                 EditScreen(
                                     notePathEncoded = notePathEncoded,
                                     navController = navController
@@ -134,14 +143,20 @@ class MainActivity : ComponentActivity() {
                     // 文件夹添加窗口
                     if (showFolderDialog) {
                         AlertDialog(
-                            onDismissRequest = { showFolderDialog = false },
+                            onDismissRequest = {
+                                @Suppress("AssignedValueIsNeverRead")
+                                showFolderDialog = false
+                            },
                             title = {
                                 Text(stringResource(R.string.label_creat_new_folder))
                             },
                             text = {
                                 OutlinedTextField(
                                     value = folderName,
-                                    onValueChange = { folderName = it },
+                                    onValueChange = {
+                                        @Suppress("AssignedValueIsNeverRead")
+                                        folderName = it
+                                    },
                                     label = { Text(stringResource(R.string.label_folder_name)) },
                                     singleLine = true
                                 )
@@ -151,7 +166,9 @@ class MainActivity : ComponentActivity() {
                                 TextButton(
                                     onClick = {
                                         viewModel.createNewFolder(folderName, unnamedName)
+                                        @Suppress("AssignedValueIsNeverRead")
                                         showFolderDialog = false
+                                        @Suppress("AssignedValueIsNeverRead")
                                         folderName = ""
                                         scope.launch { drawerState.close() }
                                     }
@@ -162,7 +179,9 @@ class MainActivity : ComponentActivity() {
                             dismissButton = {
                                 TextButton(
                                     onClick = {
+                                        @Suppress("AssignedValueIsNeverRead")
                                         showFolderDialog = false
+                                        @Suppress("AssignedValueIsNeverRead")
                                         folderName = ""
                                     }
                                 ) {

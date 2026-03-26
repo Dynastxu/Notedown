@@ -170,7 +170,9 @@ fun EditScreen(
                             block = block,
                             readOnly = !isEditing,
                             onImageClick = {
+                                @Suppress("AssignedValueIsNeverRead")
                                 isPreviewingImage = true
+                                @Suppress("AssignedValueIsNeverRead")
                                 selectedImage = it
                             },
                             isLastBlock = isLastItem,
@@ -219,6 +221,7 @@ fun EditScreen(
             image = selectedImage,
             modifier = Modifier.fillMaxWidth(),
             onClick = {
+                @Suppress("AssignedValueIsNeverRead")
                 isPreviewingImage = false
             }
         )
