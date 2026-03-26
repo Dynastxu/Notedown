@@ -41,7 +41,6 @@ import com.dynastxu.notedown.models.data.Route
 import com.dynastxu.notedown.models.view.MainViewModel
 import com.dynastxu.notedown.pages.EditScreen
 import com.dynastxu.notedown.pages.HomeScreen
-import com.dynastxu.notedown.pages.ImageScreen
 import com.dynastxu.notedown.pages.SettingsScreen
 import com.dynastxu.notedown.ui.theme.NotedownTheme
 import com.dynastxu.notedown.views.AppDrawerContent
@@ -96,7 +95,7 @@ class MainActivity : ComponentActivity() {
                         topBar = {
                             if (currentRoute == null) return@Scaffold
                             AnimatedVisibility(
-                                visible = !currentRoute.startsWith(Route.IMAGE) && !currentRoute.startsWith(
+                                visible = !currentRoute.startsWith(
                                     Route.EDIT
                                 ),
                                 enter = fadeIn(animationSpec = tween(300)) + expandVertically(
@@ -137,7 +136,6 @@ class MainActivity : ComponentActivity() {
                                     navController = navController
                                 )
                             }
-                            composable(Route.IMAGE) { ImageScreen(navController, viewModel) }
                         }
                     }
                     // 文件夹添加窗口

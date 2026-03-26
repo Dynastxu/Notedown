@@ -6,5 +6,4 @@ object Route {
     const val HOME = "home"
     const val SETTINGS = "settings"
     const val EDIT = "edit"
-    const val IMAGE = "image"
 }
