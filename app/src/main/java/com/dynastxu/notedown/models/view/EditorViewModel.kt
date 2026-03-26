@@ -191,7 +191,6 @@ class EditorViewModel @Inject constructor(
     fun onImagesSelected(
         note: Note,
         uris: List<Uri>,
-        context: Context,
         fullContent: String,
         selectionStart: Int,
         selectionEnd: Int
@@ -200,7 +199,7 @@ class EditorViewModel @Inject constructor(
         if (uris.isEmpty()) return
         viewModelScope.launch(Dispatchers.IO) {
             val paths = uris.mapNotNull { uri ->
-                copyUriToNote(note, uri, context) // 复制，返回本地路径
+                copyUriToNote(note, uri) // 复制，返回本地路径
             }
             if (paths.isEmpty()) return@launch
             // 在主线程更新 blocks
@@ -210,7 +209,7 @@ class EditorViewModel @Inject constructor(
         }
     }
 
-    private suspend fun copyUriToNote(note: Note, uri: Uri, context: Context): String? {
+    private suspend fun copyUriToNote(note: Note, uri: Uri): String? {
         return repository.copyImageToNote(note, uri)
     }
 

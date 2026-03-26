@@ -72,6 +72,7 @@ import com.dynastxu.notedown.models.data.Block
 import com.dynastxu.notedown.models.data.ImageData
 import com.dynastxu.notedown.models.data.note.Note
 import com.dynastxu.notedown.models.view.EditorViewModel
+import com.dynastxu.notedown.views.ImagePreviewer
 import com.dynastxu.notedown.views.Loading
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
@@ -80,8 +81,7 @@ import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 fun EditScreen(
     notePathEncoded: String,
     navController: NavController,
-    viewModel: EditorViewModel = hiltViewModel(),
-    onImageSelected: (ImageData) -> Unit = {}
+    viewModel: EditorViewModel = hiltViewModel()
 ) {
     val blocks by viewModel.blocks.collectAsState()
     val focusedIndex by viewModel.focusedIndex.collectAsState()
@@ -90,6 +90,8 @@ fun EditScreen(
     val title by viewModel.title.collectAsState()
     val isEditing by viewModel.isEditing.collectAsState()
     val note by viewModel.note.collectAsState()
+    var isPreviewingImage by remember { mutableStateOf(false) }
+    var selectedImage by remember { mutableStateOf<ImageData?>(null) }
 
     // 解码路径
     val notePath = remember(notePathEncoded) {
@@ -112,99 +114,114 @@ fun EditScreen(
         listState.animateScrollToItem(focusedIndex)
     }
 
-    Scaffold(
-        topBar = {
-            // 自定义顶部栏，包含编辑模式切换按钮
-            EditTopBar(
-                isEditing = isEditing,
-                navController = navController,
-                onToggleEdit = {
-                    viewModel.toggleEditing()
-                    if (isEditing) {
-                        viewModel.saveNote()
+    if (!isPreviewingImage) {
+        Scaffold(
+            topBar = {
+                // 自定义顶部栏，包含编辑模式切换按钮
+                EditTopBar(
+                    isEditing = isEditing,
+                    navController = navController,
+                    onToggleEdit = {
+                        viewModel.toggleEditing()
+                        if (isEditing) {
+                            viewModel.saveNote()
+                        }
+                    }
+                )
+            }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .fillMaxSize()
+            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // 标题
+                    item {
+                        OutlinedTextField(
+                            value = title,
+                            onValueChange = {
+                                viewModel.setTitle(it)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = TextStyle(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            readOnly = !isEditing,
+                            placeholder = {
+                                Text(
+                                    stringResource(R.string.title)
+                                )
+                            }
+                        )
+                    }
+                    itemsIndexed(blocks) { index, block ->
+                        val isLastItem = index == viewModel.blocks.collectAsState().value.size - 1
+                        val isFocused = index == focusedIndex
+                        val borderColor =
+                            if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent
+                        BlockItem(
+                            block = block,
+                            readOnly = !isEditing,
+                            onImageClick = {
+                                isPreviewingImage = true
+                                selectedImage = it
+                            },
+                            isLastBlock = isLastItem,
+                            onNeedFocus = {
+                                viewModel.setFocusedIndex(index)
+                            },
+                            onDeletePrevious = {
+                                viewModel.deletePreviousBlockIfAtStart()
+                            },
+                            modifier = Modifier
+                                .border(Dp.Hairline, borderColor, MaterialTheme.shapes.small),
+                            isFocused = isFocused
+                        )
                     }
                 }
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-        ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item {
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = {
-                            viewModel.setTitle(it)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = TextStyle(
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        readOnly = !isEditing,
-                        placeholder = {
-                            Text(
-                                stringResource(R.string.title)
-                            )
-                        }
-                    )
-                }
-                itemsIndexed(blocks) { index, block ->
-                    val isLastItem = index == viewModel.blocks.collectAsState().value.size - 1
-                    val isFocused = index == focusedIndex
-                    val borderColor =
-                        if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent
-                    BlockItem(
-                        block = block,
-                        readOnly = !isEditing,
-                        onImageClick = onImageSelected,
-                        isLastBlock = isLastItem,
-                        onNeedFocus = {
-                            viewModel.setFocusedIndex(index)
-                        },
-                        onDeletePrevious = {
-                            viewModel.deletePreviousBlockIfAtStart()
-                        },
-                        modifier = Modifier
-                            .border(Dp.Hairline, borderColor, MaterialTheme.shapes.small),
-                        isFocused = isFocused
-                    )
-                }
-            }
 
-            AnimatedVisibility(
-                visible = isEditing,
-                enter = slideInVertically(initialOffsetY = { it }), // FIXME 动画效果非预期
-                exit = slideOutVertically(targetOffsetY = { it * 2 }),
-                modifier = Modifier.align(Alignment.BottomCenter)
-            ) {
-                val focusedBlock = if (blocks.isNotEmpty()) {
-                    blocks[focusedIndex.coerceIn(0, blocks.size - 1)]
-                } else {
-                    null
-                }
-                if (focusedBlock != null && note != null) {
-                    EditToolBar(
-                        block = focusedBlock,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .imePadding(),
-                        viewModel = viewModel,
-                        note = note!!
-                    )
-                } else {
-                    Log.e("EditScreen", "focusedBlock or note is null")
+                AnimatedVisibility(
+                    visible = isEditing,
+                    enter = slideInVertically(initialOffsetY = { it }), // FIXME 动画效果非预期
+                    exit = slideOutVertically(targetOffsetY = { it * 2 }),
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                ) {
+                    val focusedBlock = if (blocks.isNotEmpty()) {
+                        blocks[focusedIndex.coerceIn(0, blocks.size - 1)]
+                    } else {
+                        null
+                    }
+                    if (focusedBlock != null && note != null) {
+                        EditToolBar(
+                            block = focusedBlock,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .imePadding(),
+                            viewModel = viewModel,
+                            note = note!!
+                        )
+                    } else {
+                        Log.e("EditScreen", "focusedBlock or note is null")
+                    }
                 }
             }
         }
+    }
+    else {
+        ImagePreviewer(
+            image = selectedImage,
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                isPreviewingImage = false
+            }
+        )
     }
 }
 
@@ -260,7 +277,6 @@ fun EditToolBar(
                             // 传递完整信息给 ViewModel 处理
                             viewModel.onImagesSelected(
                                 uris = uris,
-                                context = context,
                                 fullContent = fullMarkdown,
                                 selectionStart = selection.min,
                                 selectionEnd = selection.max,

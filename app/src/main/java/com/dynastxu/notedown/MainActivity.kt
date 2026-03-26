@@ -124,12 +124,8 @@ class MainActivity : ComponentActivity() {
                             ) { backStackEntry ->
                                 val notePathEncoded = backStackEntry.arguments?.getString("notePathEncoded") ?: return@composable
                                 EditScreen(
-                                    navController = navController,
                                     notePathEncoded = notePathEncoded,
-                                    onImageSelected = {
-                                        viewModel.setSelectedImage(it)
-                                        navController.navigate(Route.IMAGE)
-                                    }
+                                    navController = navController
                                 )
                             }
                             composable(Route.IMAGE) { ImageScreen(navController, viewModel) }
