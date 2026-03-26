@@ -266,7 +266,6 @@ fun EditToolBar(
                         block.state!!.currentSpanStyle.fontStyle == FontStyle.Italic
                     val isStrikethrough =
                         block.state!!.currentSpanStyle.textDecoration == TextDecoration.LineThrough
-                    val context = LocalContext.current
                     val photoPickerLauncher = rememberLauncherForActivityResult(
                         contract = ActivityResultContracts.PickMultipleVisualMedia(),
                         onResult = { uris ->
