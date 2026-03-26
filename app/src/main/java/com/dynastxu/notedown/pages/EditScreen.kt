@@ -120,7 +120,7 @@ fun EditScreen(
                 navController = navController,
                 onToggleEdit = {
                     viewModel.toggleEditing()
-                    if (!isEditing) {
+                    if (isEditing) {
                         viewModel.saveNote()
                     }
                 }
@@ -186,15 +186,23 @@ fun EditScreen(
                 exit = slideOutVertically(targetOffsetY = { it * 2 }),
                 modifier = Modifier.align(Alignment.BottomCenter)
             ) {
-                val focusedBlock = blocks[focusedIndex.coerceIn(0, blocks.size - 1)]
-                EditToolBar(
-                    block = focusedBlock,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .imePadding(),
-                    viewModel = viewModel,
-                    note = note!!
-                )
+                val focusedBlock = if (blocks.isNotEmpty()) {
+                    blocks[focusedIndex.coerceIn(0, blocks.size - 1)]
+                } else {
+                    null
+                }
+                if (focusedBlock != null && note != null) {
+                    EditToolBar(
+                        block = focusedBlock,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .imePadding(),
+                        viewModel = viewModel,
+                        note = note!!
+                    )
+                } else {
+                    Log.e("EditScreen", "focusedBlock or note is null")
+                }
             }
         }
     }

@@ -227,6 +227,14 @@ class NoteRepositoryImpl @Inject constructor(
                 }
             }
         }
+        val mdFile = File(note.folder, "${note.folder.name}.md")
+        mdFile.writeText(stringContent.toString())
+        // 更新配置
+        val gson = Gson()
+        note.config.editDate = Date()
+        val configFile = File(note.folder, "config.js")
+        configFile.writeText(gson.toJson(note.config))
+        Log.i("保存笔记", "保存成功")
     }
 
     override suspend fun copyImageToNote(

@@ -61,6 +61,7 @@ class EditorViewModel @Inject constructor(
                 val content = repository.readNote(notePath) ?: return@launch
                 _blocks.value = content.content
                 _title.value = content.note.config.title
+                _note.value = content.note
                 _noteReady.value = true
             }
         } else {
