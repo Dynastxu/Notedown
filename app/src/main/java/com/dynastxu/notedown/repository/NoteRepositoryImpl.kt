@@ -90,21 +90,24 @@ class NoteRepositoryImpl @Inject constructor(
             if (start > lastIndex) {
                 val textBeforeImage = content.substring(lastIndex, start)
                 if (textBeforeImage.isNotBlank()) {
-                    val textBlock = Block.RichTextBlock(initialText = textBeforeImage.trimEnd())
-                    blocks.add(textBlock)
+                    // 如果最后一个块已经是文本块，则合并内容；否则添加新文本块
+                    if (blocks.isNotEmpty() && blocks.last() is Block.RichTextBlock) {
+                        val lastTextBlock = blocks.last() as Block.RichTextBlock
+                        val currentText = lastTextBlock.state?.toMarkdown() ?: ""
+                        lastTextBlock.state?.setMarkdown(currentText + textBeforeImage)
+                    } else {
+                        blocks.add(Block.RichTextBlock(initialText = textBeforeImage.trimEnd()))
+                    }
                 }
             }
 
-            // 确保第一个块是文本块：如果当前为空列表或最后一个不是文本块，则添加空文本块
-            if (blocks.isEmpty() || blocks.last() !is Block.RichTextBlock) {
+            // 确保第一个块是文本块：如果当前为空列表，则添加空文本块
+            if (blocks.isEmpty()) {
                 blocks.add(Block.RichTextBlock())
             }
 
             // 添加图片块（此时前一个块保证是文本块）
             blocks.add(Block.ImageBlock(image = ImageData(src, alt)))
-
-            // 在图片块后立即添加空文本块，确保图片块后也有文本块
-            blocks.add(Block.RichTextBlock())
 
             lastIndex = end
         }
