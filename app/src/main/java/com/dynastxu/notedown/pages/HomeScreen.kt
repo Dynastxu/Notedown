@@ -188,17 +188,19 @@ fun HomeScreen(
                 }
             }
 
-            FloatingActionButtons(
-                onCreateNoteClick = {
-                    viewModel.createNewNote()
-                },
-                onCreateFolderClick = {
-                    showFolderDialog = true
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-            )
+            if (!selectMode) {
+                FloatingActionButtons(
+                    onCreateNoteClick = {
+                        viewModel.createNewNote()
+                    },
+                    onCreateFolderClick = {
+                        showFolderDialog = true
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                )
+            }
         }
     }
 }

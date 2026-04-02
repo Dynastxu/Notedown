@@ -172,13 +172,14 @@ class NoteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun createNote(folder: Folder): Note = withContext(Dispatchers.IO) {
-        val noteFolder = uniqueFolder(folder.folder, UUID.randomUUID().toString())
+        val noteUUID = UUID.randomUUID()
+        val noteFolder = uniqueFolder(folder.folder, noteUUID.toString())
         val config = NoteConfig(
             createDate = Date()
         )
         if (noteFolder.mkdirs()) {
             File(noteFolder, "imgs").mkdirs()
-            File(noteFolder, "${LocalDate.now()}.md").createNewFile()
+            File(noteFolder, "$noteUUID.md").createNewFile()
             val configFile = File(noteFolder, "config.js")
             if (configFile.createNewFile()) {
                 // 将配置写入文件
