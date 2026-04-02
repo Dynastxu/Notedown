@@ -42,8 +42,6 @@ fun AppDrawerContent(
     navController: NavHostController,
     drawerState: DrawerState,
     scope: CoroutineScope,
-    viewModel: MainViewModel?,
-    onNewFolderClick: () -> Unit = {}
 ) {
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
@@ -73,36 +71,6 @@ fun AppDrawerContent(
         }
         HorizontalDivider()
         Spacer(Modifier.height(16.dp))
-        // 添加笔记
-        NavigationDrawerItem(
-            label = { Text(stringResource(R.string.label_add_note)) },
-            selected = false,
-            onClick = {
-                viewModel?.createNewNote()
-                navController.navigate(Route.EDIT)
-                scope.launch { drawerState.close() }
-            },
-            icon = {
-                Icon(
-                    painterResource(R.drawable.outline_add_notes_24),
-                    stringResource(R.string.label_add_note)
-                )
-            }
-        )
-        // 添加文件夹
-        NavigationDrawerItem(
-            label = { Text(stringResource(R.string.label_creat_new_folder)) },
-            selected = false,
-            onClick = {
-                onNewFolderClick()
-            },
-            icon = {
-                Icon(
-                    painterResource(R.drawable.outline_create_new_folder_24),
-                    stringResource(R.string.label_creat_new_folder)
-                )
-            }
-        )
         // 搜索
         NavigationDrawerItem(
             label = { Text(stringResource(R.string.label_search)) },
@@ -140,7 +108,6 @@ private fun PAppDrawerContent() {
     AppDrawerContent(
         navController = rememberNavController(),
         drawerState = DrawerState(initialValue = DrawerValue.Closed),
-        scope = rememberCoroutineScope(),
-        viewModel = null
+        scope = rememberCoroutineScope()
     )
 }

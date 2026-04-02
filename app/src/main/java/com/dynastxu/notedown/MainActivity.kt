@@ -14,22 +14,14 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -46,7 +38,6 @@ import com.dynastxu.notedown.ui.theme.NotedownTheme
 import com.dynastxu.notedown.views.AppDrawerContent
 import com.dynastxu.notedown.views.AppTopBar
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -58,9 +49,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             NotedownTheme {
-                var showFolderDialog by remember { mutableStateOf(false) }
-                var folderName by remember { mutableStateOf("") }
-
                 // 创建导航控制器
                 val navController = rememberNavController()
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -78,12 +66,7 @@ class MainActivity : ComponentActivity() {
                             AppDrawerContent(
                                 navController = navController,
                                 drawerState = drawerState,
-                                scope = scope,
-                                viewModel = viewModel,
-                                onNewFolderClick = {
-                                    @Suppress("AssignedValueIsNeverRead")
-                                    showFolderDialog = true
-                                }
+                                scope = scope
                             )
                         }
                     },
@@ -108,8 +91,7 @@ class MainActivity : ComponentActivity() {
                                 AppTopBar(
                                     navController,
                                     drawerState,
-                                    scope,
-                                    viewModel
+                                    scope
                                 )
                             }
                         }  // 顶部栏随页面变化
@@ -120,7 +102,7 @@ class MainActivity : ComponentActivity() {
                             startDestination = Route.HOME,
                             modifier = Modifier.padding(innerPadding)
                         ) {
-                            composable(Route.HOME) { HomeScreen(navController, viewModel) }
+                            composable(Route.HOME) { HomeScreen(navController) }
                             composable(Route.SETTINGS) { SettingsScreen(navController) }
                             composable(
                                 "${Route.EDIT}/{notePathEncoded}",
@@ -137,56 +119,6 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
-                    }
-                    // 文件夹添加窗口
-                    if (showFolderDialog) {
-                        AlertDialog(
-                            onDismissRequest = {
-                                @Suppress("AssignedValueIsNeverRead")
-                                showFolderDialog = false
-                            },
-                            title = {
-                                Text(stringResource(R.string.label_creat_new_folder))
-                            },
-                            text = {
-                                OutlinedTextField(
-                                    value = folderName,
-                                    onValueChange = {
-                                        @Suppress("AssignedValueIsNeverRead")
-                                        folderName = it
-                                    },
-                                    label = { Text(stringResource(R.string.label_folder_name)) },
-                                    singleLine = true
-                                )
-                            },
-                            confirmButton = {
-                                val unnamedName = stringResource(R.string.unnamed_name)
-                                TextButton(
-                                    onClick = {
-                                        viewModel.createNewFolder(folderName, unnamedName)
-                                        @Suppress("AssignedValueIsNeverRead")
-                                        showFolderDialog = false
-                                        @Suppress("AssignedValueIsNeverRead")
-                                        folderName = ""
-                                        scope.launch { drawerState.close() }
-                                    }
-                                ) {
-                                    Text(stringResource(R.string.confirm))
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(
-                                    onClick = {
-                                        @Suppress("AssignedValueIsNeverRead")
-                                        showFolderDialog = false
-                                        @Suppress("AssignedValueIsNeverRead")
-                                        folderName = ""
-                                    }
-                                ) {
-                                    Text(stringResource(R.string.cancel))
-                                }
-                            }
-                        )
                     }
                 }
             }

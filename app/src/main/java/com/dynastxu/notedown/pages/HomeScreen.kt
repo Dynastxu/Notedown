@@ -22,18 +22,26 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -42,15 +50,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.dynastxu.notedown.R
 import com.dynastxu.notedown.models.data.Folder
+import com.dynastxu.notedown.models.data.Route
 import com.dynastxu.notedown.models.data.note.Note
 import com.dynastxu.notedown.models.data.note.NoteConfig
-import com.dynastxu.notedown.models.data.Route
 import com.dynastxu.notedown.models.view.HomeViewModel
-import com.dynastxu.notedown.models.view.MainViewModel
 import com.dynastxu.notedown.utils.export
 import com.dynastxu.notedown.views.Loading
 import java.io.File
@@ -62,36 +69,40 @@ import java.util.Date
 @Composable
 fun HomeScreen(
     navController: NavController,
-    mainViewModel: MainViewModel,
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val folderReady by mainViewModel.folderReady.collectAsState()
-    val currentFolder by mainViewModel.currentFolder.collectAsState()
+    val folderReady by viewModel.folderReady.collectAsState()
+    val newNoteReady by viewModel.newNoteReady.collectAsState()
+    val currentFolder by viewModel.currentFolder.collectAsState()
     val notes by viewModel.currentNotesList.collectAsState()
     val folders by viewModel.currentFoldersList.collectAsState()
     val selectMode by viewModel.selectMode.collectAsState()
-    val needFresh by mainViewModel.needHomeRefresh.collectAsState()
+
+    var showFolderDialog by remember { mutableStateOf(false) }
+    var folderName by remember { mutableStateOf("") }
 
     LaunchedEffect(notes, folders, currentFolder) {
         if (currentFolder == null) return@LaunchedEffect
-        viewModel.scanNoteFolders(currentFolder!!)
+        viewModel.scanFoldersAndNotes(currentFolder!!.folder)
     }
 
-    LaunchedEffect(needFresh) {
-        if (needFresh) {
-            viewModel.scanNoteFolders(currentFolder!!)
-            mainViewModel.onHomeRefreshed()
+    LaunchedEffect(newNoteReady) {
+        if (newNoteReady != null) {
+            val encodedPath = Uri.encode(newNoteReady!!.folder.absolutePath)
+            viewModel.newNoteReadyConsume()
+            navController.navigate("${Route.EDIT}/$encodedPath")
         }
     }
 
-    when (folderReady) {
-        null -> {
-            // 文件夹未准备好，显示加载状态
-            Loading()
-        }
-
-        else -> {
-            // 文件夹已准备好，显示内容
+    if (folderReady == null) {
+        // 文件夹未准备好，显示加载状态
+        Loading()
+    } else {
+        // 文件夹已准备好，显示内容
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -100,7 +111,6 @@ fun HomeScreen(
             ) {
                 Route(
                     viewModel = viewModel,
-                    mainViewModel = mainViewModel,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp)
@@ -117,12 +127,7 @@ fun HomeScreen(
                         Text(stringResource(R.string.no_note))
                         Spacer(Modifier.height(8.dp))
                         Button(onClick = {
-                            mainViewModel.createNewNote()
-                            val newNote = mainViewModel.selectedNote.value
-                            if (newNote != null) {
-                                val encodedPath = Uri.encode(newNote.folder.absolutePath)
-                                navController.navigate("${Route.EDIT}/$encodedPath")
-                            }
+                            viewModel.createNewNote()
                         }) { Text(stringResource(R.string.btn_add_note)) }
                     }
                 } else {
@@ -134,30 +139,123 @@ fun HomeScreen(
                                 viewModel.setSelectMode(true)
                             }
                             viewModel.select(index)
+                        }
+                    )
+                }
+
+                // 文件夹添加窗口
+                if (showFolderDialog) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            showFolderDialog = false
                         },
-                        mainViewModel = mainViewModel
+                        title = {
+                            Text(stringResource(R.string.label_creat_new_folder))
+                        },
+                        text = {
+                            OutlinedTextField(
+                                value = folderName,
+                                onValueChange = {
+                                    folderName = it
+                                },
+                                label = { Text(stringResource(R.string.label_folder_name)) },
+                                singleLine = true
+                            )
+                        },
+                        confirmButton = {
+                            val defaultName = stringResource(R.string.unnamed_name)
+                            TextButton(
+                                onClick = {
+                                    viewModel.createNewFolder(folderName, defaultName)
+                                    showFolderDialog = false
+                                    folderName = ""
+                                }
+                            ) {
+                                Text(stringResource(R.string.confirm))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
+                                    showFolderDialog = false
+                                    folderName = ""
+                                }
+                            ) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                        }
                     )
                 }
             }
+
+            FloatingActionButtons(
+                onCreateNoteClick = {
+                    viewModel.createNewNote()
+                },
+                onCreateFolderClick = {
+                    showFolderDialog = true
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            )
         }
+    }
+}
+
+@Preview
+@Composable
+fun FloatingActionButtons(
+    modifier: Modifier = Modifier,
+    onCreateNoteClick: () -> Unit = {},
+    onCreateFolderClick: () -> Unit = {}
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End
+    ) {
+        FloatingActionButton(
+            onClick = onCreateFolderClick,
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        ) {
+            Icon(
+                painterResource(R.drawable.outline_create_new_folder_24),
+                stringResource(R.string.label_creat_new_folder)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        ExtendedFloatingActionButton(
+            onClick = onCreateNoteClick,
+            icon = {
+                Icon(
+                    painterResource(R.drawable.outline_add_notes_24),
+                    stringResource(R.string.label_add_note)
+                )
+            },
+            text = {
+                Text(stringResource(R.string.btn_add_note))
+            }
+        )
     }
 }
 
 @Composable
 fun Route(
     viewModel: HomeViewModel,
-    mainViewModel: MainViewModel,
     modifier: Modifier = Modifier
 ) {
     val route by viewModel.route.collectAsState()
-    val currentFolder by mainViewModel.currentFolder.collectAsState()
-    val folderReady by mainViewModel.folderReady.collectAsState()
+    val currentFolder by viewModel.currentFolder.collectAsState()
+    val folderReady by viewModel.folderReady.collectAsState()
 
     val listState = rememberLazyListState()
 
     LaunchedEffect(folderReady, currentFolder) {
         if (folderReady == null || currentFolder == null) return@LaunchedEffect
-        viewModel.calculateRoute(folderReady!!, currentFolder!!)
+        viewModel.calculateRoute(folderReady!!, currentFolder!!.folder)
     }
 
     LaunchedEffect(route) {
@@ -179,7 +277,7 @@ fun Route(
                 modifier = Modifier
                     .combinedClickable(
                         onClick = {
-                            mainViewModel.setCurrentFolder(route[index])
+                            viewModel.setCurrentFolder(Folder(route[index]))
                         }
                     )
             )
@@ -191,7 +289,6 @@ fun Route(
 fun NotesList(
     navController: NavController,
     viewModel: HomeViewModel,
-    mainViewModel: MainViewModel,
     modifier: Modifier = Modifier,
     onLongClick: (Int) -> Unit
 ) {
@@ -199,7 +296,7 @@ fun NotesList(
     val folders by viewModel.currentFoldersList.collectAsState()
     val selectMode by viewModel.selectMode.collectAsState()
     val selections by viewModel.selections.collectAsState()
-    val currentFolder by mainViewModel.currentFolder.collectAsState()
+    val currentFolder by viewModel.currentFolder.collectAsState()
 
     if (currentFolder == null) {
         Log.e("笔记列表", "当前目录为 null")
@@ -229,8 +326,8 @@ fun NotesList(
                         if (selectMode) {
                             viewModel.select(index)
                         } else {
-                            mainViewModel.setCurrentFolder(
-                                folders[index].folder
+                            viewModel.setCurrentFolder(
+                                Folder(folders[index].folder)
                             )
                         }
                     },
@@ -247,7 +344,6 @@ fun NotesList(
                             // 多选模式
                             viewModel.select(actualIndex)
                         } else {
-                            mainViewModel.selectNote(notes[index])
                             // 使用 NavType.encodeToUrl() 方法进行安全编码
                             val encodedPath = Uri.encode(notes[index].folder.absolutePath)
                             navController.navigate("${Route.EDIT}/$encodedPath")
@@ -266,7 +362,7 @@ fun NotesList(
         ) {
             BottomToolBar(
                 viewModel = viewModel,
-                currentFolder = currentFolder!!
+                currentFolder = currentFolder!!.folder
             )
         }
     }
@@ -290,7 +386,7 @@ fun BottomToolBar(viewModel: HomeViewModel, modifier: Modifier = Modifier, curre
                 contract = ActivityResultContracts.CreateDocument("application/zip")
             ) { uri ->
                 uri?.let {
-                    val selectedFolders = viewModel.getSelectedFolders()
+                    val selectedFolders = viewModel.getSelectedFoldersAndNotes()
                     if (selectedFolders.isNotEmpty()) {
                         export(context, selectedFolders, it)
                         viewModel.setSelectMode(false)
@@ -321,7 +417,7 @@ fun BottomToolBar(viewModel: HomeViewModel, modifier: Modifier = Modifier, curre
             IconButton(
                 onClick = {
                     viewModel.onDelete()
-                    viewModel.scanNoteFolders(currentFolder)
+                    viewModel.scanFoldersAndNotes(currentFolder)
                 }
             ) {
                 Icon(
@@ -501,7 +597,7 @@ fun NoteItem(
 
 @Preview
 @Composable
-fun PNoteItem() {
+private fun PNoteItem() {
     NoteItem(
         Note(
             File(""), NoteConfig(

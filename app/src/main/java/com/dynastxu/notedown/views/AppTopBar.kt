@@ -9,7 +9,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -17,7 +16,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.dynastxu.notedown.R
 import com.dynastxu.notedown.models.data.Route
-import com.dynastxu.notedown.models.view.MainViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -30,12 +28,10 @@ fun AppTopBar(
     navController: NavHostController,
     drawerState: DrawerState,
     scope: CoroutineScope,
-    viewModel: MainViewModel
 ) {
     // 观察当前栈顶条目，以获取当前路由
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
-    val isEditing by viewModel.isEditing.collectAsState()
 
     // 根据路由确定标题
     val title = when (currentRoute) {
@@ -61,36 +57,12 @@ fun AppTopBar(
                 else -> {
                     // 点击返回上一页
                     IconButton(onClick = {
-                        // 如果在编辑页面，触发返回保存逻辑
-                        if (currentRoute == Route.EDIT) {
-                            viewModel.onEditBackPressed()
-                        }
-
                         navController.navigateUp()
                     }) {
                         Icon(
                             painterResource(R.drawable.outline_arrow_back_24),
                             stringResource(R.string.icon_desc_back)
                         )
-                    }
-                }
-            }
-        },
-        actions = {
-            when (currentRoute) {
-                Route.EDIT -> {
-                    IconButton(onClick = { viewModel.onPressEditBtn() }) {
-                        if (isEditing) {
-                            Icon(
-                                painterResource(R.drawable.outline_save_24),
-                                stringResource(R.string.icon_desc_done)
-                            )
-                        } else {
-                            Icon(
-                                painterResource(R.drawable.outline_edit_24),
-                                stringResource(R.string.icon_desc_edit)
-                            )
-                        }
                     }
                 }
             }

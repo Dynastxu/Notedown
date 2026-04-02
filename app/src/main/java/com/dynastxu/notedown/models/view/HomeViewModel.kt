@@ -5,15 +5,29 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dynastxu.notedown.models.data.Folder
 import com.dynastxu.notedown.models.data.note.Note
-import com.dynastxu.notedown.models.data.note.NoteConfig
-import com.google.gson.Gson
-import kotlinx.coroutines.Dispatchers
+import com.dynastxu.notedown.repository.NoteRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import jakarta.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
-class HomeViewModel : ViewModel() {
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val repository: NoteRepository
+): ViewModel() {
+    // 用于通知 UI 文件夹是否准备就绪
+    private val _folderReady = MutableStateFlow<File?>(null)
+    val folderReady: StateFlow<File?> = _folderReady
+
+    // 用于通知新建笔记是否准备就绪
+    private val _newNoteReady = MutableStateFlow<Note?>(null)
+    val newNoteReady: StateFlow<Note?> = _newNoteReady
+
+    private val _currentFolder = MutableStateFlow<Folder?>(null)
+    val currentFolder: StateFlow<Folder?> = _currentFolder
+
     private val _currentNotesList = MutableStateFlow<List<Note>>(emptyList())
     val currentNotesList: StateFlow<List<Note>> = _currentNotesList
 
@@ -29,10 +43,31 @@ class HomeViewModel : ViewModel() {
     private val _route = MutableStateFlow<List<File>>(emptyList())
     val route: StateFlow<List<File>> = _route
 
+    init {
+        createNotedownRootFolder()
+    }
 
-    private val gson = Gson()
+    fun setCurrentFolder(folder: Folder) {
+        _currentFolder.value = folder
+    }
 
-    fun getSelectedFolders(): List<File> {
+    /**
+     * 创建笔记根目录
+     */
+    private fun createNotedownRootFolder() {
+        viewModelScope.launch {
+            val folder = repository.createNotedownRootFolder()
+            if (folder == null) {
+                Log.e("创建失败", "创建笔记根目录失败")
+                return@launch
+            }
+            // 回到主线程更新状态
+            _currentFolder.value = Folder(folder)
+            _folderReady.value = folder
+        }
+    }
+
+    fun getSelectedFoldersAndNotes(): List<File> {
         val selections = mutableListOf<File>()
         _selections.value.forEach { index ->
             if (index >= _currentFoldersList.value.size) {
@@ -92,125 +127,70 @@ class HomeViewModel : ViewModel() {
     }
 
     fun onDelete() {
+        val notesToDelete = mutableListOf<Note>()
+        val foldersToDelete = mutableListOf<Folder>()
         _selections.value.forEach { index ->
             if (index >= _currentFoldersList.value.size) {
                 val newIndex = index - _currentFoldersList.value.size
-                delete(_currentNotesList.value[newIndex])
+                notesToDelete.add(_currentNotesList.value[newIndex])
                 Log.i("用户删除", "删除了笔记 ${_currentNotesList.value[newIndex]}")
             } else {
-                delete(_currentFoldersList.value[index])
+                foldersToDelete.add(_currentFoldersList.value[index])
                 Log.i("用户删除", "删除了文件夹 ${_currentFoldersList.value[index]}")
             }
+        }
+        viewModelScope.launch {
+            repository.delNotes(notesToDelete)
+            repository.delFolders(foldersToDelete)
         }
         _selections.value = emptyList()
     }
 
-    private fun delete(note: Note) {
-        // TODO 这里为确保 UI 正确刷新取消了异步执行，之后需要换成显示删除进度，完成后刷新 UI
-        deleteRecursively(note.folder)
-    }
-
-    private fun delete(folder: Folder) {
-        viewModelScope.launch(Dispatchers.IO) {
-            deleteRecursively(folder.folder)
-        }
-    }
-
-
     /**
-     * 递归删除文件或文件夹
-     *
-     * @param file 要删除的文件或文件夹
-     * @return 删除是否成功
-     */
-    private fun deleteRecursively(file: File): Boolean {
-        if (!file.exists()) return true
-
-        return if (file.isDirectory) {
-            // 如果是目录，先删除所有子文件和子目录
-            file.listFiles()?.forEach { child ->
-                if (!deleteRecursively(child)) {
-                    return false
-                }
-            }
-            // 然后删除空目录
-            file.delete()
-        } else {
-            // 如果是文件，直接删除
-            file.delete()
-        }
-    }
-
-    /**
-     * 扫描指定目录下包含 MD 文件的子文件夹
+     * 扫描指定目录下的笔记和文件夹
      *
      * @param dir 扫描目录
      */
-    fun scanNoteFolders(dir: File) {
-        viewModelScope.launch(Dispatchers.IO) {
-            // 检查目录是否存在且可读
-            if (!dir.exists() || !dir.isDirectory || !dir.canRead()) {
-                return@launch
+    fun scanFoldersAndNotes(dir: File) {
+        viewModelScope.launch {
+            val scanResult = repository.scanFoldersAndNotes(dir)
+            if (scanResult != null) {
+                _currentNotesList.value = scanResult.notes
+                _currentFoldersList.value = scanResult.folders
+            } else {
+                Log.e("扫描失败", "扫描结果为 null")
             }
-            val notesList = mutableListOf<Note>()
-            val folderList = mutableListOf<Folder>()
-            // 获取所有子文件和子目录
-            val files = dir.listFiles() ?: return@launch
-            // 遍历所有文件
-            files.forEach {
-                if (it.isDirectory) {
-                    if (isNoteFolder(it)) {
-                        notesList.add(
-                            Note(it, readNoteConfigs(it))
-                        )
-                    } else {
-                        folderList.add(
-                            Folder(it, countNotesNum(it))
-                        )
-                    }
-                }
-            }
-            _currentNotesList.value = notesList.toList()
-            _currentFoldersList.value = folderList.toList()
         }
     }
 
-    private fun isNoteFolder(dir: File): Boolean {
-        // 获取所有子文件和子目录
-        val files = dir.listFiles() ?: return false
-        // 检查当前目录是否包含 MD 文件
-        val hasMdFiles = files.any { it.isFile && it.extension.lowercase() == "md" }
-        return hasMdFiles
-    }
-
-    private fun readNoteConfigs(folder: File): NoteConfig {
-        val configFile = File(folder, "config.js")
-        // 如果 config.js 文件不存在，使用默认值
-        if (!configFile.exists() || !configFile.isFile) {
-            return NoteConfig()
+    fun createNewNote() {
+        if (_currentFolder.value == null) {
+            Log.e("创建笔记", "当前文件夹为 null")
+            return
         }
-
-        val configContent = configFile.readText(Charsets.UTF_8)
-        return gson.fromJson(configContent, NoteConfig::class.java)
+        viewModelScope.launch {
+            _newNoteReady.value = repository.createNote(_currentFolder.value!!)
+        }
     }
 
-    private fun countNotesNum(folder: File): Int {
-        // TODO 可能需要改为异步执行
-        if (!folder.exists() || !folder.isDirectory) return 0
+    /**
+     * 消费：新笔记创建完成
+     */
+    fun newNoteReadyConsume() {
+        _newNoteReady.value = null
+    }
 
-        var count = 0
-        val files = folder.listFiles() ?: return 0
-
-        files.forEach { file ->
-            if (file.isDirectory) {
-                if (isNoteFolder(file)) {
-                    count++
-                } else {
-                    count += countNotesNum(file)
-                }
+    fun createNewFolder(folderName: String, defaultName: String) {
+        if (_currentFolder.value == null) {
+            Log.e("创建文件夹", "当前文件夹为 null")
+            return
+        }
+        viewModelScope.launch {
+            if (folderName.isBlank()) {
+                repository.createFolder(_currentFolder.value!!, defaultName)
+            } else {
+                repository.createFolder(_currentFolder.value!!, folderName)
             }
         }
-
-        return count
     }
 }
